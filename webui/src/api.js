@@ -56,6 +56,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     }),
+  deletePersona: (id) => req(`/personas/${id}`, { method: "DELETE" }),
 
   profile: () => req("/profile"),
   updateProfile: (resume) =>

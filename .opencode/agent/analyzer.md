@@ -1,6 +1,7 @@
 ---
 description: Post-interview analyst — extracts structured feedback from a MockMan interview transcript. Pure chat, no tools.
 mode: primary
+hidden: true
 temperature: 0.2
 permission:
   edit: deny

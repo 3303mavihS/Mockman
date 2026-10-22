@@ -47,11 +47,69 @@ def message_text(msg: dict) -> str:
     return text.strip('"')
 
 
+def compute(data: dict, wav_dir: Path) -> dict:
+    """Machine-readable metrics — also saved as report.json for the web UI."""
+    msgs = data["messages"]
+    answers, questions = [], []
+    for m in msgs:
+        role = m["info"]["role"]
+        text = message_text(m)
+        if role == "user" and text.startswith(ANSWER_PREFIX):
+            answers.append(text[len(ANSWER_PREFIX):].strip())
+        elif role == "user" and text.startswith(("SETUP:", "END INTERVIEW")):
+            continue
+        elif role == "assistant" and text:
+            questions.append(text)
+
+    rows, total_dur, total_words, total_fillers = [], 0, 0, 0
+    for i, ans in enumerate(answers, start=1):
+        dur = wav_duration(wav_dir / f"answer_{i}.wav")
+        words = len(ans.split())
+        fillers = len(FILLER_RE.findall(ans))
+        wpm = words / dur * 60 if dur else 0
+        total_dur += dur or 0
+        total_words += words
+        total_fillers += fillers
+        rows.append({"turn": i, "seconds": round(dur or 0), "words": words,
+                     "wpm": round(wpm), "fillers": fillers,
+                     "preview": ans[:60]})
+
+    t_in = t_out = t_reason = t_cache = 0
+    cost = 0.0
+    for m in msgs:
+        if m["info"]["role"] != "assistant":
+            continue
+        t = m["info"].get("tokens") or {}
+        t_in += t.get("input", 0)
+        t_out += t.get("output", 0)
+        t_reason += t.get("reasoning", 0)
+        t_cache += (t.get("cache") or {}).get("read", 0)
+        cost += m["info"].get("cost") or 0.0
+    est_cost = cost if cost > 0 else t_in * 3e-6 + t_out * 15e-6 + t_cache * 0.3e-6
+
+    return {
+        "turns": rows,
+        "totals": {
+            "speaking_seconds": round(total_dur),
+            "words": total_words,
+            "avg_wpm": round(total_words / (total_dur / 60)) if total_dur else 0,
+            "fillers": total_fillers,
+            "fillers_per_min": round(total_fillers / (total_dur / 60), 1) if total_dur else 0,
+            "interviewer_turns": len(questions),
+        },
+        "tokens": {"input": t_in, "output": t_out, "reasoning": t_reason,
+                   "cache_read": t_cache},
+        "cost_usd": round(est_cost, 4),
+    }
+
+
 def main() -> None:
     if len(sys.argv) < 2:
-        sys.exit("usage: metrics.py <opencode-session-id> [wav-directory]")
-    wav_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT
-    data = export_session(sys.argv[1])
+        sys.exit("usage: metrics.py <opencode-session-id> [wav-directory] [--json]")
+    as_json = "--json" in sys.argv
+    positional = [a for a in sys.argv[1:] if not a.startswith("--")]
+    wav_dir = Path(positional[1]) if len(positional) > 1 else ROOT
+    data = export_session(positional[0])
     msgs = data["messages"]
 
     answers, questions = [], []
@@ -60,14 +118,16 @@ def main() -> None:
         text = message_text(m)
         if role == "user" and text.startswith(ANSWER_PREFIX):
             answers.append(text[len(ANSWER_PREFIX):].strip())
-        elif role == "user" and text.startswith("SETUP:"):
-            continue
-        elif role == "user" and text == "END INTERVIEW":
+        elif role == "user" and text.startswith(("SETUP:", "END INTERVIEW")):
             continue
         elif role == "assistant" and text:
             questions.append(text)
 
-    print(f"\n📊 MockMan session report — {sys.argv[1]}")
+    if as_json:
+        print(json.dumps(compute(data, wav_dir), indent=2))
+        return
+
+    print(f"\n📊 MockMan session report — {positional[0]}")
     print(f"   agent: {data['info'].get('agent')} | turns analyzed: {len(answers)}\n")
 
     total_dur = total_words = total_fillers = 0

@@ -52,6 +52,13 @@ def finalize_session(session_dir: Path, session_id: str | None) -> None:
         [sys.executable, str(ROOT / "metrics.py"), session_id, str(session_dir)],
         capture_output=True, text=True, check=False, cwd=ROOT)
     (session_dir / "report.txt").write_text(report.stdout)
+    # machine-readable twin for the web UI (at-a-glance panel, per-turn table)
+    report_json = subprocess.run(
+        [sys.executable, str(ROOT / "metrics.py"), session_id,
+         str(session_dir), "--json"],
+        capture_output=True, text=True, check=False, cwd=ROOT)
+    if report_json.stdout.strip().startswith("{"):
+        (session_dir / "report.json").write_text(report_json.stdout)
 
 
 def _validate_day_sid(day: str, sid: str) -> bool:
@@ -103,14 +110,16 @@ def load_session(day: str, sid: str) -> dict | None:
             key=lambda n: int(re.search(r"\d+", n).group()),
         )
 
-    feedback = None
-    fb = sess / "feedback.json"
-    if fb.is_file():
+    import json
+
+    def _json_file(name: str):
+        f = sess / name
+        if not f.is_file():
+            return None
         try:
-            import json
-            feedback = json.loads(fb.read_text())
+            return json.loads(f.read_text())
         except (json.JSONDecodeError, OSError):
-            feedback = None
+            return None
 
     return {
         "day": day,
@@ -119,7 +128,8 @@ def load_session(day: str, sid: str) -> dict | None:
                       if (sess / "transcript.md").is_file() else "",
         "report": (sess / "report.txt").read_text()
                   if (sess / "report.txt").is_file() else "",
+        "report_json": _json_file("report.json"),
         "answers": _numbered("answer_*.wav"),
         "interviewer": _numbered("interviewer_*.wav"),
-        "feedback": feedback,
+        "feedback": _json_file("feedback.json"),
     }

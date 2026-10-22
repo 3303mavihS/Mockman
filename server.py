@@ -136,6 +136,15 @@ def persona_update(persona_id: str, body: PersonaUpdate) -> dict:
     return {"ok": True}
 
 
+@app.delete("/api/personas/{persona_id}")
+def persona_delete(persona_id: str) -> dict:
+    from core.personas import delete_persona
+    if not delete_persona(persona_id):
+        raise HTTPException(status_code=400,
+                            detail="cannot delete (protected or missing)")
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # Profile (resume reused across interviews; stays local, gitignored)
 # ---------------------------------------------------------------------------
