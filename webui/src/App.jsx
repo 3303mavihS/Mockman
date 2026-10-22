@@ -31,9 +31,21 @@ function ToastHost() {
   return <div className={`toast ${msg ? "show" : ""}`} role="status">{msg}</div>;
 }
 
+const ACCENTS = { "Electric chartreuse": "#d4f36a", "Signal coral": "#f2845c" };
+
 export default function App() {
   // platform screens live inside the sidebar shell; greenroom/call are fullscreen
   const [screen, setScreen] = useState("home");
+
+  // persisted accent preference (Settings → Appearance)
+  useEffect(() => {
+    try {
+      const a = JSON.parse(localStorage.getItem("mockman.appearance")) || {};
+      if (a.accent && ACCENTS[a.accent]) {
+        document.documentElement.style.setProperty("--lime", ACCENTS[a.accent]);
+      }
+    } catch { /* default accent */ }
+  }, []);
   const [config, setConfig] = useState(null);
   const [endResult, setEndResult] = useState(null);
   const [detail, setDetail] = useState(null);

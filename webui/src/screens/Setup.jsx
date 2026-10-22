@@ -9,10 +9,13 @@ export default function Setup({ onBack, onContinue }) {
   const [context, setContext] = useState("");
   const [theme, setTheme] = useState("meet");
 
-  // prefill context from the saved profile resume (still editable per interview)
+  // prefill context from the saved profile (resume + target JD), still editable
   useEffect(() => {
     api.profile().then((p) => {
-      if (p.resume) setContext(p.resume);
+      const parts = [];
+      if (p.resume) parts.push(p.resume);
+      if (p.jd) parts.push(`Target job description:\n${p.jd}`);
+      if (parts.length) setContext(parts.join("\n\n"));
     }).catch(() => {});
   }, []);
 

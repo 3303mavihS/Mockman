@@ -57,12 +57,13 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
   deletePersona: (id) => req(`/personas/${id}`, { method: "DELETE" }),
+  personaDefault: (id) => req(`/personas/${id}/default`),
 
   profile: () => req("/profile"),
-  updateProfile: (resume) =>
+  updateProfile: (resume, jd) =>
     req("/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resume }),
+      body: JSON.stringify({ resume, jd }),
     }),
 };

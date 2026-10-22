@@ -151,18 +151,40 @@ def persona_delete(persona_id: str) -> dict:
 
 class ProfileUpdate(BaseModel):
     resume: str = Field(default="", max_length=MAX_CONTEXT_CHARS)
+    jd: str = Field(default="", max_length=MAX_CONTEXT_CHARS)
+
+
+def _read_profile() -> dict:
+    f = PROFILE_DIR / "profile.json"
+    if f.is_file():
+        try:
+            return json.loads(f.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    # migrate the v1 resume-only file
+    legacy = PROFILE_DIR / "resume.txt"
+    return {"resume": legacy.read_text() if legacy.is_file() else "", "jd": ""}
 
 
 @app.get("/api/profile")
 def profile_get() -> dict:
-    f = PROFILE_DIR / "resume.txt"
-    return {"resume": f.read_text() if f.is_file() else ""}
+    return _read_profile()
 
 
 @app.put("/api/profile")
 def profile_put(body: ProfileUpdate) -> dict:
-    (PROFILE_DIR / "resume.txt").write_text(body.resume)
+    (PROFILE_DIR / "profile.json").write_text(
+        json.dumps({"resume": body.resume, "jd": body.jd}, indent=2))
     return {"ok": True}
+
+
+@app.get("/api/personas/{persona_id}/default")
+def persona_default(persona_id: str) -> dict:
+    """Factory-reset source: defaults/<id>.md ships with the repo."""
+    path = ROOT / "defaults" / f"{persona_id}.md"
+    if not re.match(r"^[a-z0-9][a-z0-9-]*$", persona_id) or not path.is_file():
+        raise HTTPException(status_code=404, detail="no default for this persona")
+    return {"id": persona_id, "content": path.read_text()}
 
 
 # ---------------------------------------------------------------------------
