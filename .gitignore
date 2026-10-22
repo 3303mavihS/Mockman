@@ -30,3 +30,6 @@ webui/dist/
 *.local
 .python/
 
+
+# --- runtime state ---
+.mockman.pid
