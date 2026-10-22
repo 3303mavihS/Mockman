@@ -1,0 +1,27 @@
+# --- runtime (recreate per machine; never commit) ---
+.python/
+.venv/
+
+# --- compiled Swift binaries (rebuild: swiftc -O <name>.swift -o <name>) ---
+/record
+/transcribe
+
+# --- user interview data (private; never commit) ---
+sessions/
+
+# --- scratch & media ---
+*.wav
+*.m4a
+*.aiff
+*.log
+__pycache__/
+.DS_Store
+
+# --- opencode runtime deps (auto-installed) ---
+.opencode/node_modules/
+
+# --- local secrets ---
+.env
+*.local
+.python/
+
