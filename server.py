@@ -322,7 +322,11 @@ def interview_start(req: StartRequest) -> dict:
         setup += f"\nCandidate resume / job description context:\n{req.context.strip()}"
     setup += "\nBegin the interview."
 
-    session_id, opening = ask_interviewer(setup, None, agent=req.persona)
+    try:
+        session_id, opening = ask_interviewer(setup, None, agent=req.persona)
+    except (RuntimeError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=502,
+                            detail=f"interviewer brain unavailable: {exc}")
     if not opening:
         raise HTTPException(status_code=502, detail="interviewer brain returned nothing")
 

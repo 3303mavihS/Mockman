@@ -9,12 +9,30 @@ contract: ask(message, session_id) -> (session_id, response_text).
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 from . import ROOT
 
 DEFAULT_AGENT = "interviewer"
+
+
+def _opencode_bin() -> str:
+    """Locate the opencode binary. GUI-launched processes (MockMan.app,
+    Finder-started servers) inherit a bare PATH without ~/.opencode/bin,
+    so check the default install location explicitly."""
+    found = shutil.which("opencode")
+    if found:
+        return found
+    default = Path.home() / ".opencode" / "bin" / "opencode"
+    if default.is_file():
+        return str(default)
+    raise RuntimeError(
+        "opencode CLI not found (checked PATH and ~/.opencode/bin). "
+        "Install it from opencode.ai — MockMan's interviewer brain needs it."
+    )
 
 
 def parse_opencode_json(path: str) -> tuple[str | None, str]:
@@ -38,7 +56,7 @@ def parse_opencode_json(path: str) -> tuple[str | None, str]:
 def ask_interviewer(message: str, session_id: str | None,
                     agent: str = DEFAULT_AGENT) -> tuple[str | None, str]:
     """Send a message to the interviewer persona; returns (session_id, reply)."""
-    cmd = ["opencode", "run", "--agent", agent, "--format", "json"]
+    cmd = [_opencode_bin(), "run", "--agent", agent, "--format", "json"]
     if session_id:
         cmd += ["--session", session_id]
     cmd.append(message)

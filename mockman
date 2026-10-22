@@ -17,6 +17,9 @@
 
 set -u
 cd "$(dirname "$0")"
+# GUI/launcher environments get a bare PATH; make sure user-level CLIs
+# (opencode, etc.) are visible to the server process.
+export PATH="$HOME/.opencode/bin:/opt/homebrew/bin:$PATH"
 PORT="${MOCKMAN_PORT:-8420}"
 PID_FILE=".mockman.pid"
 LOG_FILE="/tmp/mockman-server.log"
