@@ -1,51 +1,58 @@
 # MockMan 🎙️
 
-**Local mock-interview practice. Speak your answers, get grilled by an AI interviewer, get measured on how you did. No subscriptions. Your voice never leaves your Mac.**
+**Local mock-interview practice that feels like the real thing.** A full platform: set up a round, pass a device check in the green room, join a Meet- or Zoom-style call, answer out loud to an AI interviewer with a neural voice — then review transcripts, replays, per-question coaching, and speaking metrics.
+
+No subscriptions. Your voice and transcripts never leave your Mac (except answer text to *your chosen* LLM provider — or nowhere, with a local brain).
 
 ```
-🎙️ you speak → 📝 on-device transcription → 🧠 AI interviewer → 🔊 neural voice replies
+setup → green room (device check) → join → live call (voice + problem board)
+      → end → auto-generated feedback, report & question analysis → review
 ```
 
 ---
 
-## The problem
+## Why this exists
 
-Every mock-interview platform is the same machine under the hood: your voice → speech-to-text → a GPT-style wrapper with a persona → text-to-speech → a subscription paywall. The model was never the product — the *loop* was. And the loop is buildable, locally, for free.
+Every mock-interview platform is the same machine under the hood: your voice → speech-to-text → a GPT-style wrapper with a persona → text-to-speech → a paywall. The model was never the product — the *loop* was. MockMan is that loop, self-hosted:
 
-MockMan is that loop, self-hosted:
+- **~5¢/session** with a frontier API; **free** via Gemini CLI's free tier or a local Ollama model
+- **Private by construction** — recordings, transcripts, and reports live in a gitignored `sessions/` folder on your disk
+- **Measurable** — pace, filler words, answer structure, question-by-question verdicts, token cost
 
-- **No subscription** — ~5¢/session with a frontier API, **free** with Gemini CLI's free tier or a local Ollama model
-- **Private** — recordings and transcripts stay in a gitignored `sessions/` folder on your disk; the only thing that ever leaves the machine is transcript text sent to *your chosen* LLM provider (and nothing at all if you run a local brain)
-- **Measurable** — every session ends with a report: speaking pace, filler-word rate, answer lengths, token cost
+## The experience
 
-## Why macOS only (for now)
+| Surface | What you get |
+|---|---|
+| **Dashboard** | session history, lifetime stats (sessions, speaking minutes, average), report/analysis chips |
+| **Setup** | role, round type (behavioral / technical / system design / mixed), persona picker, Meet/Zoom theme, resume+JD context |
+| **Green room** | camera preview, live mic meter, real device dropdowns, session summary — join blocked until the mic is on |
+| **The call** | Meet-style or Zoom-style room: webcam tile, audio-reactive interviewer avatar, live captions, hold-to-talk (Space), problem board for technical rounds, meeting timer |
+| **Call ended** | instant hang-up; feedback/report/analysis generate in the background |
+| **Review** | chat-style transcript with per-turn audio replay, speaking report with per-turn table, question-by-question coaching (strong/average/weak + notes), export as markdown |
+| **Settings** | persona manager (create/edit/reset/delete interviewer personalities as markdown), resume profile, appearance (dark platform theme, accent color) |
 
-v1 is deliberately Mac-native, and it's a feature, not laziness:
+## Architecture
 
-1. **STT: Apple's `SpeechAnalyzer`** (macOS 26+) — the same engine that transcribes Voice Memos and Notes. On-device, zero downloads to manage, measured **~57× realtime** (a 2.5-minute answer transcribes in ~2.6s). No other platform hands you that for free.
-2. **TTS: Kokoro-82M via MLX** — Apple's ML framework, running on Apple Silicon's unified memory. Neural-quality voice, fully offline.
-3. **Mic capture: AVAudioEngine** — a tiny Swift CLI, no PortAudio/ffmpeg dependency.
-
-The abstraction seams (`transcribe()`, `ask_interviewer()`, `Speaker`) are deliberate: `whisper.cpp` + Piper are the parked cross-platform fallbacks. See [TODO.md](TODO.md).
-
-## Features
-
-- 🎙️ **Voice-in, voice-out** interview loop — press Enter, answer out loud, press Enter
-- 🧠 **Interviewer persona** that probes ("where does the dedup state live?"), interprets garbled transcripts charitably, and never breaks character
-- 📄 **Resume/JD injection** — pass a context file and questions target *your* background
-- 📊 **Per-session analytics** — pace (wpm), filler words ("um/uh") per minute, answer lengths, token usage & cost
-- 🗂️ **Session archive** — every interview saved as `sessions/<date>/<id>/` with recordings, live transcript, report, and raw session export
-- 🗣️ **Pronunciation lexicon** — Kokoro mispronounces "Redis"? One dict entry fixes it forever
-- 🛡️ **Battle-tested UX guards** — stale-Enter immunity, empty-recording detection, transcription timeouts, clean Ctrl+C
+```
+webui/ (React + Vite)                platform + call UI
+server.py (FastAPI, 127.0.0.1)       REST API over the engine
+core/                                 the UI-free engine:
+  stt.py      Apple SpeechAnalyzer (on-device, ~57× realtime)
+  brain.py    interviewer LLM via opencode agent (adapter seam)
+  tts.py      Kokoro-82M neural voice (MLX) + pronunciation lexicon
+  sessions.py session store, metrics, traversal-safe lookups
+  personas.py interviewer personas as editable markdown files
+.opencode/agent/interviewer.md       Riya's persona (the interviewer's brain)
+.opencode/agent/analyzer.md          post-session question extractor
+record/transcribe (Swift)            native mic + STT CLIs (terminal mode)
+interview.py                         the original terminal frontend
+mockman                              launcher: start/stop/restart/status/logs
+MockMan.app                          double-clickable launcher (machine-local)
+```
 
 ## Requirements
 
-| Thing | Why |
-|---|---|
-| macOS 26+ (Tahoe), Apple Silicon | SpeechAnalyzer API + MLX |
-| Xcode Command Line Tools (`swiftc`) | compiles the two Swift CLIs |
-| Homebrew | for `espeak-ng` (Kokoro's fallback for out-of-dictionary tech words) |
-| A brain | [opencode](https://opencode.ai) (default), or any CLI LLM — see configuration |
+macOS 26+ (Tahoe) on Apple Silicon · Xcode CLT (`swiftc`) · Homebrew (`espeak-ng`) · Node.js (frontend build) · [opencode](https://opencode.ai) CLI authenticated to any LLM provider
 
 ## Install
 
@@ -56,61 +63,55 @@ git clone https://github.com/3303mavihS/Mockman.git && cd Mockman
 curl -sL "https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.12.15%2B20261021-aarch64-apple-darwin-install_only.tar.gz" \
   -o /tmp/pbs.tar.gz && mkdir -p .python && tar -xzf /tmp/pbs.tar.gz -C .python --strip-components=1 && rm /tmp/pbs.tar.gz
 
-# 2. dependencies
+# 2. python deps
 .python/bin/python3.12 -m venv .venv
-.venv/bin/pip install mlx-audio misaki num2words phonemizer-fork espeakng-loader "misaki[en]"
+.venv/bin/pip install mlx-audio misaki num2words phonemizer-fork espeakng-loader "misaki[en]" fastapi "uvicorn[standard]" python-multipart pillow
 
 # 3. Kokoro's grapheme-to-phoneme fallback (tech vocabulary!)
 brew install espeak-ng
 
-# 4. compile the native helpers
+# 4. native helpers (terminal mode)
 xcrun swiftc -O record.swift -o record
 xcrun swiftc -O transcribe.swift -o transcribe
+
+# 5. web UI
+cd webui && npm install && npm run build && cd ..
+
+# 6. optional: double-clickable app icon
+#    (regenerates the machine-local MockMan.app launcher)
 ```
 
-First run downloads the Kokoro voice model (~300MB, once) and macOS will ask for microphone + speech-recognition permission (once each).
+First run downloads the Kokoro voice model (~300MB, once) and asks mic/camera/speech permissions (once each).
 
-## Usage
+## Run it
 
 ```bash
-# defaults: "Senior Backend Engineer", mixed interview
-.venv/bin/python interview.py
-
-# full form: role, type, and a file with your resume + target JD
-.venv/bin/python interview.py "Senior Backend Engineer" mixed ~/resume-and-jd.txt
-
-# different interviewer voice
-MOCKMAN_VOICE=am_michael .venv/bin/python interview.py
-
-# analytics for any past session (id is printed when a session ends)
-.venv/bin/python metrics.py <session-id>
+./mockman           # start server (if down) + open the app
+./mockman status    # is it up?
+./mockman stop      # shut down (or use the sidebar Quit button)
+./mockman logs      # tail the server log
 ```
 
-**Flow:** Riya speaks → press **Enter**, answer out loud, press **Enter** → she probes. Say **"end the interview"** for spoken structured feedback. `Ctrl+C` exits cleanly anytime. Every turn is logged to `sessions/<date>/<id>/transcript.md` *live* — a crash loses nothing.
+Or double-click **MockMan.app**. The app idles at the dashboard — an interview exists only once you join a meeting.
+
+**Terminal mode** still works: `.venv/bin/python interview.py "Senior Backend Engineer" mixed ~/resume.txt`
 
 ## Configuration
 
 | Knob | Where |
 |---|---|
-| Interviewer persona, tone, rules | `.opencode/agent/interviewer.md` — plain markdown, edit and rerun |
-| Voice | `MOCKMAN_VOICE` env var (`af_heart`, `af_bella`, `af_nova`, `am_adam`, `am_michael`, …) |
+| Interviewer persona(s) | Settings UI, or `.opencode/agent/*.md` directly |
+| Voice | `MOCKMAN_VOICE` env var (`af_heart`, `am_michael`, …) |
 | TTS model | `MOCKMAN_TTS_MODEL` env var |
-| Pronunciation fixes | `PRONUNCIATIONS` dict at the top of `interview.py` |
+| Pronunciation fixes | `PRONUNCIATIONS` in `core/tts.py` |
+| Port | `MOCKMAN_PORT` env var (default 8420) |
 
-## What a session report looks like
+## Docs
 
-```
-⏱️  total speaking time : 16.7 min
-🗣️  words spoken        : 2026  (avg 225/answer)
-🏃 avg pace            : 122 wpm  (conversational ≈120-150)
-🌀 fillers             : 80 total (4.8/min — target < 2/min)
-🪙 tokens              : 6,949 total + 43,644 cache-read
-💰 cost (est.)         : $0.0463
-```
-
-## The story behind it
-
-The decision log — why SpeechAnalyzer over Whisper, why a markdown file is the persona, the Homebrew incident that killed Python mid-build, the stale-Enter bug hunt — is in **[THOUGHT-PROCESS.md](THOUGHT-PROCESS.md)**. What's done vs. what's next lives in **[TODO.md](TODO.md)**.
+- **[THOUGHT-PROCESS.md](THOUGHT-PROCESS.md)** — the design log: why SpeechAnalyzer over Whisper, persona-as-markdown, the TTS escalation ladder, the Homebrew incident
+- **[docs/ISSUES-AND-FIXES.md](docs/ISSUES-AND-FIXES.md)** — every bug we hit and how it was fixed (the debugging playbook)
+- **[docs/WEB-UI-PLAN.md](docs/WEB-UI-PLAN.md)** — the web platform plan with phase checkpoints
+- **[TODO.md](TODO.md)** — what's done and what's next
 
 ## License
 

@@ -98,5 +98,8 @@ Key conventions:
 ### Phase 5 — Zoom theme + launcher ✅ (2026-10-22)
 - [x] 5.1 Zoom-style theme variant (light chrome, blue accent, squared tiles) — `theme-zoom` CSS class; both pills active in Setup
 - [x] 5.2 `mockman` launcher script (starts server if down, opens browser; idles at dashboard until Join; Automator .app instructions in script header). Webcam tracks stopped on call exit (camera light off)
-- [ ] 5.3 README/demo update for the web UI
-- [ ] **CHECKPOINT 5:** double-click launch → dashboard → join → interview — pending human test
+- [x] 5.3 README covers the web platform
+- [x] **CHECKPOINT 5 ✅:** app icon → dashboard → join → interview verified by the user; bare-PATH launch bug found & fixed (ISSUES-AND-FIXES 4.4)
+
+### Design-concept rollout (post-phase polish, all shipped)
+Dashboard, Setup, Settings, Session Review, Call Ended, Green Room — all rebuilt from approved HTML concepts. Fixes en route: TDZ join crash, audio overlap, transcript parser misalignment, zoom board overflow, camera leak, persona wiring (picker + name follows persona), dark platform theme. Full account: docs/ISSUES-AND-FIXES.md.

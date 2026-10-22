@@ -88,8 +88,26 @@ sessions/<YYYY-MM-DD>/<opencode-session-id>/
 
 Everything under `sessions/` is gitignored. What leaves the machine: transcript text → your chosen LLM provider, nothing else. With a local Ollama brain, nothing at all.
 
+## 9. The web platform era (decisions after the CLI worked)
+
+Moving to a browser frontend surfaced a second wave of design decisions:
+
+- **The platform simulates the ritual, not just the Q&A.** Dashboard → setup → green room (device check) → waiting room → call → ended → review. The realism *is* the training effect. The app idles at the dashboard; an interview exists only after "join" — that one rule kept every lifecycle sane.
+- **Warm light for prep/review, dark studio for the live call.** The user's design concepts set this deliberately: two moods, one app. The palette (olive-charcoal + chartreuse) went app-wide from the meeting concept.
+- **The problem board, not a chat.** First we put the whole conversation in the chat panel; the correct model is a one-way board — only interviewer artifacts (problem statements, code) live there. Conversation stays in captions. Product lesson: the panel is a *shared whiteboard*, not a message log.
+- **Hold-to-talk over toggle.** Click-to-toggle forgets to stop. Holding Space is impossible to forget. (And the mic is hard-locked while the interviewer speaks — the CLI's stale-Enter bug in its final form.)
+- **Hang up means hang up.** End-call used to block ~40s on feedback generation; now it closes in ~16ms and the wrap-up (feedback, report, analysis) runs in a background thread. Zero-answer sessions are discarded with no LLM call at all.
+- **Browser audio replaces the Swift CLIs on the web path** — AudioWorklet → downsample → PCM16 WAV is exactly what the transcriber already eats. The Swift binaries remain for terminal mode.
+- **One audio player, ever.** Overlapping playback was impossible to pause because each play made a new `Audio()`. A single managed player with toggle semantics ended the class of bug.
+- **Cleanup invariants live at the router.** The camera-leak fix wasn't in any component — it's an App-level rule: *no camera stream may exist off the green-room/call screens.*
+- **Startup is a feature.** Background voice warmup (health never blocks), a PID-filed launcher with start/stop/restart/status/logs, a Quit button in the UI, and a hand-built MockMan.app with a real icon — because "go to the terminal to start the tool" was a stated non-goal.
+- **GUI ≠ terminal environment.** The bare-PATH 500 (opencode invisible to Finder-launched processes) is now handled by explicit binary resolution + launcher PATH exports — and verified under `env -i`.
+
+The full bug-by-bug account lives in [docs/ISSUES-AND-FIXES.md](docs/ISSUES-AND-FIXES.md).
+
 ## What we'd revisit
 
 - **Latency** (~15–20s/turn): LLM call dominates; streaming LLM→sentence-chunked TTS gets it to ~6s.
-- **Trailing-silence STT hallucinations**: press Enter promptly, or add VAD/silence-trim.
+- **Trailing-silence STT hallucinations**: press Space promptly, or add VAD/silence-trim.
 - **Cross-platform**: whisper.cpp + Piper behind the existing seams.
+- **Brain choice per user**: the `ask_interviewer` seam is ready for Claude Code / Gemini CLI / Ollama adapters.
