@@ -17,9 +17,9 @@
 
 ## 🔲 Next up
 
+- [ ] **Web UI** — full platform: dashboard, Meet/Zoom-style call simulation, technical rounds via chat. **Active workstream — see [docs/WEB-UI-PLAN.md](docs/WEB-UI-PLAN.md)** (phases 0–5 with checkpoints)
 - [ ] **Brain adapters** — Claude Code (`claude -p --resume`), Gemini CLI (`gemini -p`), Ollama (local, $0); stateless-history fallback for arbitrary CLIs. The seam (`ask_interviewer`) already exists
 - [ ] **Streaming pipeline** — read LLM tokens as they arrive → sentence-chunk → TTS → play; target ~6s turn latency (from ~15–20s)
-- [ ] **Web UI** — browser mic + playback (retires both Swift CLIs), live transcript view, session-history sidebar reading `sessions/`
 - [ ] **`install.sh`** — one-command setup replacing README steps 1–4
 
 ## 🔲 Later
