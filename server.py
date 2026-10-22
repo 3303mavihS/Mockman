@@ -11,6 +11,7 @@ Run:
 import re
 import shutil
 import threading
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -56,7 +57,15 @@ class InterviewState:
         self.question_seq = 1         # interviewer audio counter (interviewer_N.wav)
         self.chat_log: list[dict] = []  # technical-round chat panel entries
         self.answered = False         # any real candidate input (voice/chat)?
+        self.answers = 0              # count of real candidate answers
+        self.created_at = time.time()
         self.ended = False
+
+    def summary(self) -> dict:
+        return {
+            "duration_seconds": int(time.time() - self.created_at),
+            "answers": self.answers,
+        }
 
 
 _interviews: dict[str, InterviewState] = {}
@@ -317,6 +326,7 @@ async def interview_answer(interview_id: str,
 
     log_turn(state.session_dir, "📝 You", transcript)
     state.answered = True
+    state.answers += 1
 
     if "end the interview" in transcript.lower() or "end interview" in transcript.lower():
         return _end_interview(state, transcript)
@@ -344,6 +354,7 @@ def interview_chat(interview_id: str, req: ChatRequest) -> dict:
     # board — the panel shows interviewer artifacts only
     log_turn(state.session_dir, "📝 You (chat)", req.message)
     state.answered = True
+    state.answers += 1
     state.session_id, response = ask_interviewer(
         f"Candidate's answer (typed via chat): {req.message}", state.session_id)
     processed = _process_interviewer_reply(state, response)
@@ -378,8 +389,9 @@ def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dic
     in-memory session is closed. The UI navigates away instantly and the
     review page picks up artifacts as they land."""
     session_ref = f"{state.session_dir.parent.name}/{state.session_dir.name}"
+    summary = state.summary()
     if state.ended:  # idempotent — double end-clicks are harmless
-        return {"ended": True, "session": session_ref}
+        return {"ended": True, "session": session_ref, **summary}
     state.ended = True
 
     # No candidate input at all -> just close. No feedback call, no report,
@@ -387,11 +399,11 @@ def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dic
     if not state.answered:
         _interviews.pop(state.session_id, None)
         shutil.rmtree(state.session_dir, ignore_errors=True)
-        return {"ended": True, "session": None, "discarded": True}
+        return {"ended": True, "session": None, "discarded": True, **summary}
 
     threading.Thread(target=_finalize_in_background,
                      args=(state,), daemon=True).start()
-    return {"ended": True, "session": session_ref}
+    return {"ended": True, "session": session_ref, **summary}
 
 
 def _finalize_in_background(state: InterviewState) -> None:

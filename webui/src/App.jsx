@@ -139,7 +139,14 @@ export default function App() {
           <SessionDetail day={detail.day} sid={detail.sid} onBack={goHome} />
         )}
         {screen === "settings" && <Settings />}
-        {screen === "ended" && <Ended result={endResult} onHome={goHome} onReview={openSession} />}
+        {screen === "ended" && (
+          <Ended
+            result={endResult}
+            onHome={goHome}
+            onReview={openSession}
+            onNewInterview={() => setScreen("setup")}
+          />
+        )}
       </main>
       <ToastHost />
     </div>
