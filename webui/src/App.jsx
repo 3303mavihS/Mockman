@@ -51,6 +51,16 @@ export default function App() {
   const [detail, setDetail] = useState(null);
   const camStream = useRef(null);
 
+  // single source of truth for camera privacy: the webcam may only live on
+  // the green-room and call screens — any other screen kills it, no matter
+  // which path got us here (back, cancel, end, future screens).
+  useEffect(() => {
+    if (screen !== "greenroom" && screen !== "call" && camStream.current) {
+      camStream.current.getTracks().forEach((t) => t.stop());
+      camStream.current = null;
+    }
+  }, [screen]);
+
   const goHome = () => setScreen("home");
   const openSession = (day, sid) => {
     setDetail({ day, sid });

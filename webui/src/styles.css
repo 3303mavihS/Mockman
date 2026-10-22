@@ -594,31 +594,6 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 
 .callscreen { min-height: 100vh; display: flex; flex-direction: column; background: #090b0a; color: var(--d-text); }
 
-.d-browserbar {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 13px;
-  background: #202321;
-  border-bottom: 1px solid #343834;
-  color: #c2c7c0;
-  font-size: 11px;
-}
-.d-browserbar .dot { height: 9px; width: 9px; border-radius: 50%; background: #f36b61; }
-.d-browserbar .dot:nth-child(2) { background: #f5c451; }
-.d-browserbar .dot:nth-child(3) { background: #61c554; }
-.d-url {
-  margin-left: 10px;
-  background: #141715;
-  border-radius: 7px;
-  padding: 4px 12px;
-  max-width: 460px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .d-meeting-head {
   height: 64px;
   display: flex;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Captions as CaptionsIcon, Loader2, Mic, MicOff, MessageSquareCode,
-  PhoneOff, Send, Video, VideoOff, Volume2, Lock,
+  Captions as CaptionsIcon, Loader2, Mic, MessageSquareCode,
+  PhoneOff, Send, Video, VideoOff, Volume2,
 } from "lucide-react";
 import { api } from "../api.js";
 import { WavRecorder, playAudio, stopAudio } from "../audio.js";
@@ -293,14 +293,6 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
 
   return (
     <div className={`callscreen ${isZoom ? "zoom-mode" : "meet-mode"}`}>
-      {/* decorative browser chrome */}
-      <div className="d-browserbar">
-        <span className="dot" /><span className="dot" /><span className="dot" />
-        <span className="d-url">
-          <Lock size={10} /> {isZoom ? "zoom.mockman / session" : "meet.mockman / session"}
-        </span>
-      </div>
-
       {/* meeting head */}
       <div className="d-meeting-head">
         <div className="d-brand"><span className="d-brandmark">∿</span><span>MockMan</span></div>

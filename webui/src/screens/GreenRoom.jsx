@@ -110,7 +110,6 @@ export default function GreenRoom({ config, camStream, onBack, onJoin }) {
         <div className="eyebrow">Interview setup · Step 2 of 2</div>
         <div className="gr-heading">
           <div>
-            <h1>Get comfortable.<br />You're almost there.</h1>
             <p>Make sure your camera and microphone are ready. Take a breath — this is practice, not a performance.</p>
           </div>
           <div className="gr-step">02 <span style={{ color: "#8b8d83" }}>/</span> Green room</div>
