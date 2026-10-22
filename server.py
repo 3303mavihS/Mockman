@@ -8,8 +8,10 @@ Run:
     .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8420
 """
 
+import os
 import re
 import shutil
+import signal
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -112,6 +114,19 @@ def health() -> dict:
     else:
         voice = "ready" if _speaker.available else "unavailable"
     return {"ok": True, "voice": voice}
+
+
+@app.post("/api/shutdown")
+def shutdown() -> dict:
+    """Stop the MockMan server (the UI's Quit button).
+    Localhost-bound single-user tool; SIGINT lets uvicorn shut down cleanly."""
+    def _die() -> None:
+        time.sleep(0.4)  # let the response flush first
+        (ROOT / ".mockman.pid").unlink(missing_ok=True)
+        os.kill(os.getpid(), signal.SIGINT)
+
+    threading.Thread(target=_die, daemon=True).start()
+    return {"ok": True}
 
 
 @app.get("/api/sessions")

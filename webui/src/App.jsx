@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Home as HomeIcon, Plus, LayoutList, Settings as SettingsIcon } from "lucide-react";
+import { Home as HomeIcon, Plus, LayoutList, Settings as SettingsIcon, Power } from "lucide-react";
+import { api } from "./api.js";
+import { toast } from "./toast.js";
 import Home from "./screens/Home.jsx";
 import Setup from "./screens/Setup.jsx";
 import GreenRoom from "./screens/GreenRoom.jsx";
@@ -63,6 +65,30 @@ export default function App() {
   }, [screen]);
 
   const goHome = () => setScreen("home");
+
+  const quit = async () => {
+    if (!window.confirm("Stop MockMan? The server shuts down and this tab goes offline.")) return;
+    try {
+      await api.shutdown();
+    } catch { /* server already dying — expected */ }
+    setScreen("quit");
+  };
+
+  if (screen === "quit") {
+    return (
+      <div className="quit-page">
+        <div className="quit-card">
+          <div className="quit-icon"><Power size={26} /></div>
+          <h1>MockMan is off.</h1>
+          <p className="muted">
+            The server has stopped and this page is now offline.
+            To start again, run <code>./mockman</code> or double-click MockMan.app.
+          </p>
+        </div>
+        <ToastHost />
+      </div>
+    );
+  }
   const openSession = (day, sid) => {
     setDetail({ day, sid });
     setScreen("session");
@@ -118,6 +144,9 @@ export default function App() {
           <strong>Keep going.</strong>
           <p>Every conversation makes you sharper.</p>
         </div>
+        <button className="sidebar-quit" onClick={quit} title="Stop the MockMan server">
+          <Power size={14} /> Quit MockMan
+        </button>
       </aside>
 
       <main>

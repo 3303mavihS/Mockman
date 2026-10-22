@@ -585,6 +585,47 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
   .end-summary { grid-template-columns: 1fr; }
 }
 
+/* ---------- quit ---------- */
+
+.sidebar-quit {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #343a34;
+  background: transparent;
+  color: #b6beb3;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  transition: border-color 150ms, color 150ms;
+}
+.sidebar-quit:hover { border-color: var(--red); color: #f0a79b; }
+
+.quit-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+}
+.quit-card { max-width: 420px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.quit-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0efe7;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+.quit-card code {
+  background: #eceee5;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
 /* ---------- toast ---------- */
 
 .toast {

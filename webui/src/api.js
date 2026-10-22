@@ -13,6 +13,7 @@ async function req(path, options = {}) {
 
 export const api = {
   health: () => req("/health"),
+  shutdown: () => req("/shutdown", { method: "POST" }),
   sessions: () => req("/sessions"),
   personas: () => req("/personas"),
 
