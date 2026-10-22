@@ -9,6 +9,7 @@ Run:
 """
 
 import re
+import shutil
 import threading
 from pathlib import Path
 
@@ -54,6 +55,7 @@ class InterviewState:
         self.turn = turn              # candidate answer counter (answer_N.wav)
         self.question_seq = 1         # interviewer audio counter (interviewer_N.wav)
         self.chat_log: list[dict] = []  # technical-round chat panel entries
+        self.answered = False         # any real candidate input (voice/chat)?
         self.ended = False
 
 
@@ -283,6 +285,7 @@ async def interview_answer(interview_id: str,
                 "audio": audio_name, "ended": False, "chat": state.chat_log}
 
     log_turn(state.session_dir, "📝 You", transcript)
+    state.answered = True
 
     if "end the interview" in transcript.lower() or "end interview" in transcript.lower():
         return _end_interview(state, transcript)
@@ -309,6 +312,7 @@ def interview_chat(interview_id: str, req: ChatRequest) -> dict:
     # typed answers go to the brain + transcript, but not onto the problem
     # board — the panel shows interviewer artifacts only
     log_turn(state.session_dir, "📝 You (chat)", req.message)
+    state.answered = True
     state.session_id, response = ask_interviewer(
         f"Candidate's answer (typed via chat): {req.message}", state.session_id)
     processed = _process_interviewer_reply(state, response)
@@ -346,6 +350,14 @@ def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dic
     if state.ended:  # idempotent — double end-clicks are harmless
         return {"ended": True, "session": session_ref}
     state.ended = True
+
+    # No candidate input at all -> just close. No feedback call, no report,
+    # and the empty session shell (opening question only) is discarded.
+    if not state.answered:
+        _interviews.pop(state.session_id, None)
+        shutil.rmtree(state.session_dir, ignore_errors=True)
+        return {"ended": True, "session": None, "discarded": True}
+
     threading.Thread(target=_finalize_in_background,
                      args=(state,), daemon=True).start()
     return {"ended": True, "session": session_ref}
