@@ -89,10 +89,14 @@ Key conventions:
 - [ ] **CHECKPOINT 3:** full voice interview in browser, zero terminal — **needs human test** (getUserMedia mic/cam can't be scripted headlessly here). Browser WAV capture is new code: AudioWorklet → downsample → PCM16 WAV.
 - Notes: no react-router (state-machine screens); StrictMode OFF on purpose (Call mounts fire /start); webcam stream shared green-room → call via ref.
 
-### Phase 4 — Technical rounds via chat
-- [ ] 4.1 chat panel; 4.2 technical flow (question→chat, code answers); 4.3 persona chat instructions
-- [ ] **CHECKPOINT 4:** complete a technical round with a code answer via chat. `git commit`.
+### Phase 4 — Technical rounds via chat ✅ (2026-10-22)
+- [x] 4.1 chat panel (toggle 💻, slide-over, monospace blocks, Enter to send)
+- [x] 4.2 `POST /api/interview/{id}/chat`; `[CHAT]..[/CHAT]` parsing splits spoken vs read-me content; chat entries logged to transcript.md as "(chat)" turns; chat log returned in every response
+- [x] 4.3 persona chat-channel rules (technical/sysdesign rounds only; behavioral stays voice-only)
+- [x] **CHECKPOINT 4 ✅ (API-level):** typed Python code answer via chat → interviewer critiqued it conversationally + audio; chat log consistent. Full in-browser technical round pending human test.
 
-### Phase 5 — Zoom theme + launcher
-- [ ] 5.1 Zoom theme; 5.2 `mockman` command + .app (idle-until-join); 5.3 README/demo
-- [ ] **CHECKPOINT 5:** double-click app → dashboard → join → interview. Ship web v1.
+### Phase 5 — Zoom theme + launcher ✅ (2026-10-22)
+- [x] 5.1 Zoom-style theme variant (light chrome, blue accent, squared tiles) — `theme-zoom` CSS class; both pills active in Setup
+- [x] 5.2 `mockman` launcher script (starts server if down, opens browser; idles at dashboard until Join; Automator .app instructions in script header). Webcam tracks stopped on call exit (camera light off)
+- [ ] 5.3 README/demo update for the web UI
+- [ ] **CHECKPOINT 5:** double-click launch → dashboard → join → interview — pending human test

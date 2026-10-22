@@ -53,6 +53,7 @@ class InterviewState:
         self.session_dir = session_dir
         self.turn = turn              # candidate answer counter (answer_N.wav)
         self.question_seq = 1         # interviewer audio counter (interviewer_N.wav)
+        self.chat_log: list[dict] = []  # technical-round chat panel entries
         self.ended = False
 
 
@@ -189,11 +190,24 @@ def _extract_feedback(session_dir: Path) -> None:
 # Interview endpoints
 # ---------------------------------------------------------------------------
 
+_CHAT_RE = re.compile(r"\[CHAT\](.*?)\[/CHAT\]", re.DOTALL)
+
+
+def _split_chat_blocks(text: str) -> tuple[str, list[str]]:
+    """Split an interviewer response into (spoken_text, chat_artifacts).
+    Technical/system-design rounds wrap read-me content in [CHAT]..[/CHAT]."""
+    chat_parts = [m.strip() for m in _CHAT_RE.findall(text) if m.strip()]
+    spoken = _CHAT_RE.sub("", text).strip()
+    return spoken, chat_parts
+
+
 def _synthesize_interviewer(state: InterviewState, text: str) -> str | None:
     """Synthesize interviewer speech into the session dir (for replay).
     Uses its own sequence counter — independent of answer turn numbering —
     so the opening, each response, and the feedback never overwrite.
     Returns the wav filename, or None if Kokoro is unavailable."""
+    if not text.strip():
+        return None
     wav = get_speaker().synthesize(
         text, out_dir=str(state.session_dir))
     if wav is None:
@@ -202,6 +216,19 @@ def _synthesize_interviewer(state: InterviewState, text: str) -> str | None:
     Path(wav).rename(target)
     state.question_seq += 1
     return target.name
+
+
+def _process_interviewer_reply(state: InterviewState, reply: str) -> dict:
+    """Shared reply handling: split chat artifacts, log, synthesize spoken part."""
+    spoken, chat_parts = _split_chat_blocks(reply)
+    for part in chat_parts:
+        state.chat_log.append({"who": "interviewer", "text": part})
+    if spoken:
+        log_turn(state.session_dir, "🤖 Interviewer", spoken)
+    for part in chat_parts:
+        log_turn(state.session_dir, "🤖 Interviewer (chat)", part)
+    audio_name = _synthesize_interviewer(state, spoken)
+    return {"response": spoken, "audio": audio_name, "chat": state.chat_log}
 
 
 @app.post("/api/interview/start")
@@ -218,9 +245,9 @@ def interview_start(req: StartRequest) -> dict:
     session_dir = make_session_dir(session_id, req.role, req.itype)
     state = InterviewState(session_id, session_dir)
     _interviews[session_id] = state
-    log_turn(session_dir, "🤖 Interviewer", opening)
-    audio = _synthesize_interviewer(state, opening)
-    return {"interview_id": session_id, "opening": opening, "audio": audio,
+    processed = _process_interviewer_reply(state, opening)
+    return {"interview_id": session_id, "opening": processed["response"],
+            "audio": processed["audio"], "chat": state.chat_log,
             "turn": state.turn}
 
 
@@ -239,7 +266,7 @@ async def interview_answer(interview_id: str,
 
     if is_empty_recording(wav):
         return {"transcript": "", "response": None, "turn": state.turn,
-                "audio": None, "ended": False}
+                "audio": None, "ended": False, "chat": state.chat_log}
 
     transcript = transcribe(wav)
     if not transcript:
@@ -248,7 +275,7 @@ async def interview_answer(interview_id: str,
         log_turn(state.session_dir, "🤖 Interviewer", msg)
         audio_name = _synthesize_interviewer(state, msg)
         return {"transcript": "", "response": msg, "turn": state.turn,
-                "audio": audio_name, "ended": False}
+                "audio": audio_name, "ended": False, "chat": state.chat_log}
 
     log_turn(state.session_dir, "📝 You", transcript)
 
@@ -257,12 +284,29 @@ async def interview_answer(interview_id: str,
 
     state.session_id, response = ask_interviewer(
         f"Candidate's answer (speech transcript): {transcript}", state.session_id)
-    log_turn(state.session_dir, "🤖 Interviewer", response)
-    audio_name = _synthesize_interviewer(state, response)
-    result = {"transcript": transcript, "response": response,
-              "turn": state.turn, "audio": audio_name, "ended": False}
+    processed = _process_interviewer_reply(state, response)
+    result = {"transcript": transcript, "turn": state.turn,
+              "ended": False, **processed}
     state.turn += 1
     return result
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=MAX_CONTEXT_CHARS)
+
+
+@app.post("/api/interview/{interview_id}/chat")
+def interview_chat(interview_id: str, req: ChatRequest) -> dict:
+    """Typed answer channel — the technical-round mode."""
+    state = _interviews.get(interview_id)
+    if state is None or state.ended:
+        raise HTTPException(status_code=404, detail="interview not found or ended")
+    state.chat_log.append({"who": "you", "text": req.message})
+    log_turn(state.session_dir, "📝 You (chat)", req.message)
+    state.session_id, response = ask_interviewer(
+        f"Candidate's answer (typed via chat): {req.message}", state.session_id)
+    processed = _process_interviewer_reply(state, response)
+    return {"ended": False, **processed}
 
 
 @app.post("/api/interview/{interview_id}/end")

@@ -13,6 +13,10 @@ export default function Call({ config, camStream, onEnded }) {
   const [camOn, setCamOn] = useState(true);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatEntries, setChatEntries] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef(null);
 
   const videoRef = useRef(null);
   const recorder = useRef(new WavRecorder());
@@ -29,6 +33,10 @@ export default function Call({ config, camStream, onEnded }) {
         if (cancelled) return;
         setInterviewId(started.interview_id);
         setCaption({ who: INTERVIEWER_NAME, text: started.opening });
+        if (started.chat?.length) {
+          setChatEntries(started.chat);
+          setChatOpen(true);
+        }
         setMicState("speaking");
         if (started.audio) {
           await playAudio(api.interviewAudioUrl(started.interview_id, started.audio));
@@ -40,8 +48,13 @@ export default function Call({ config, camStream, onEnded }) {
     })();
     return () => {
       cancelled = true;
+      // leaving the call screen kills the webcam (privacy: camera light off)
+      if (camStream.current) {
+        camStream.current.getTracks().forEach((t) => t.stop());
+        camStream.current = null;
+      }
     };
-  }, [config]);
+  }, [config, camStream]);
 
   // ---- candidate video tile ----
   useEffect(() => {
@@ -88,6 +101,7 @@ export default function Call({ config, camStream, onEnded }) {
         onEnded(end);
         return;
       }
+      if (r.chat) setChatEntries(r.chat);
       const text = r.response;
       if (text) {
         setCaption({ who: INTERVIEWER_NAME, text });
@@ -124,6 +138,34 @@ export default function Call({ config, camStream, onEnded }) {
     };
   }, [startTalk, stopTalk]);
 
+  // ---- technical-round chat ----
+  const sendChat = async () => {
+    const message = chatInput.trim();
+    if (!message || micStateRef.current !== "ready") return;
+    setChatInput("");
+    setMicState("processing");
+    try {
+      const r = await api.sendChat(interviewId, message);
+      if (r.chat) setChatEntries(r.chat);
+      const text = r.response;
+      if (text) {
+        setCaption({ who: INTERVIEWER_NAME, text });
+        setMicState("speaking");
+        if (r.audio) {
+          await playAudio(api.interviewAudioUrl(interviewId, r.audio));
+        }
+      }
+      setMicState("ready");
+    } catch (e) {
+      setError(e.message);
+      setMicState("ready");
+    }
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatEntries]);
+
   const endCall = async () => {
     setMicState("processing");
     try {
@@ -150,7 +192,7 @@ export default function Call({ config, camStream, onEnded }) {
   }
 
   return (
-    <div className="call">
+    <div className={`call theme-${config.theme || "meet"}`}>
       <div className="call-topbar">
         <span className="rec-dot" /> Rec
         <span className="call-title">{config.role} — {config.itype}</span>
@@ -185,6 +227,42 @@ export default function Call({ config, camStream, onEnded }) {
       )}
       {error && <p className="error center">{error}</p>}
 
+      {chatOpen && (
+        <div className="chat-panel">
+          <div className="chat-head">Chat — technical round</div>
+          <div className="chat-entries">
+            {chatEntries.length === 0 && (
+              <p className="muted small">problems and code answers appear here</p>
+            )}
+            {chatEntries.map((e, i) => (
+              <div key={i} className={`chat-entry chat-${e.who}`}>
+                <div className="chat-who">{e.who === "you" ? "You" : INTERVIEWER_NAME}</div>
+                <pre className="chat-text">{e.text}</pre>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="chat-input-row">
+            <textarea
+              rows={2}
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendChat();
+                }
+              }}
+              placeholder="type your answer / paste code… (Enter to send)"
+            />
+            <button className="btn-primary" onClick={sendChat}
+              disabled={!chatInput.trim() || micState !== "ready"}>
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="control-bar">
         <button
           className={`ctl ${captionsOn ? "ctl-on" : ""}`}
@@ -192,6 +270,13 @@ export default function Call({ config, camStream, onEnded }) {
           title="captions"
         >
           💬
+        </button>
+        <button
+          className={`ctl ${chatOpen ? "ctl-on" : ""}`}
+          onClick={() => setChatOpen((v) => !v)}
+          title="chat (technical rounds)"
+        >
+          💻
         </button>
         <button
           className={`ctl ${camOn ? "ctl-on" : ""}`}

@@ -35,6 +35,13 @@ export const api = {
   endInterview: (interviewId) =>
     req(`/interview/${interviewId}/end`, { method: "POST" }),
 
+  sendChat: (interviewId, message) =>
+    req(`/interview/${interviewId}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    }),
+
   interviewAudioUrl: (interviewId, name) =>
     `${BASE}/interview/${interviewId}/audio/${name}`,
 

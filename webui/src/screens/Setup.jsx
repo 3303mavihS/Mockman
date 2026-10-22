@@ -53,8 +53,11 @@ export default function Setup({ onBack, onContinue }) {
           >
             Meet-style
           </button>
-          <button className="pill pill-disabled" disabled title="Coming soon">
-            Zoom-style (soon)
+          <button
+            className={`pill ${theme === "zoom" ? "pill-active" : ""}`}
+            onClick={() => setTheme("zoom")}
+          >
+            Zoom-style
           </button>
         </div>
       </div>
