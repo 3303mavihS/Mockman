@@ -8,6 +8,8 @@ export default function Setup({ onBack, onContinue }) {
   const [itype, setItype] = useState("mixed");
   const [context, setContext] = useState("");
   const [theme, setTheme] = useState("meet");
+  const [personas, setPersonas] = useState([]);
+  const [persona, setPersona] = useState("interviewer");
 
   // prefill context from the saved profile (resume + target JD), still editable
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function Setup({ onBack, onContinue }) {
       if (p.jd) parts.push(`Target job description:\n${p.jd}`);
       if (parts.length) setContext(parts.join("\n\n"));
     }).catch(() => {});
+    api.personas().then(setPersonas).catch(() => {});
   }, []);
 
   return (
@@ -50,6 +53,23 @@ export default function Setup({ onBack, onContinue }) {
               onChange={(e) => setRole(e.target.value)}
               placeholder="e.g. Frontend Engineer"
             />
+          </div>
+
+          <div className="field">
+            <label>Interviewer persona</label>
+            <div className="options">
+              {personas.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`option ${persona === p.id ? "selected" : ""}`}
+                  onClick={() => setPersona(p.id)}
+                  title={p.description}
+                >
+                  {p.id}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="field">
@@ -110,7 +130,7 @@ export default function Setup({ onBack, onContinue }) {
               className="btn primary"
               disabled={!role.trim()}
               onClick={() =>
-                onContinue({ role: role.trim(), itype, context, theme, persona: "interviewer" })
+                onContinue({ role: role.trim(), itype, context, theme, persona })
               }
             >
               Continue to green room →

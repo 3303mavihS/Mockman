@@ -278,6 +278,13 @@ def _process_interviewer_reply(state: InterviewState, reply: str) -> dict:
     return {"response": spoken, "audio": audio_name, "chat": state.chat_log}
 
 
+def _interviewer_name(persona_id: str) -> str:
+    """Display name from the persona prompt ('You are Riya, ...'), else the id."""
+    content = read_persona(persona_id) or ""
+    m = re.search(r"You are ([A-Z][A-Za-z]+)", content)
+    return m.group(1) if m else persona_id.replace("-", " ").title()
+
+
 @app.post("/api/interview/start")
 def interview_start(req: StartRequest) -> dict:
     setup = f"SETUP: Role: {req.role}. Interview type: {req.itype}."
@@ -295,7 +302,8 @@ def interview_start(req: StartRequest) -> dict:
     processed = _process_interviewer_reply(state, opening)
     return {"interview_id": session_id, "opening": processed["response"],
             "audio": processed["audio"], "chat": state.chat_log,
-            "turn": state.turn}
+            "turn": state.turn,
+            "interviewer_name": _interviewer_name(req.persona)}
 
 
 @app.post("/api/interview/{interview_id}/answer")

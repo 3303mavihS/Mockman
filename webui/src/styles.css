@@ -65,6 +65,64 @@ h1, h2, h3 { font-family: var(--font-display); }
   to { opacity: 1; transform: none; }
 }
 
+/* ---------- dark platform theme (Settings → Appearance) ---------- */
+/* scoped to the app shell; the call screen stays dark-studio regardless */
+body[data-theme="dark"] {
+  --ink: #f0f2ec;
+  --muted: #9aa39a;
+  --paper: #101311;
+  --white: #1a1f1b;
+  --line: #2e342e;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+body[data-theme="dark"] .topline,
+body[data-theme="dark"] .tabs { border-color: var(--line); }
+body[data-theme="dark"] main { background: var(--paper); }
+body[data-theme="dark"] .btn { background: #232823; border-color: #343a34; color: var(--ink); }
+body[data-theme="dark"] .btn:hover { border-color: #5c6b46; }
+body[data-theme="dark"] .btn.primary { background: var(--lime); border-color: var(--lime); color: var(--lime-ink); }
+body[data-theme="dark"] .btn.danger { background: #2a1f1d; border-color: #4a2f2a; color: #f0a79b; }
+body[data-theme="dark"] .link-button { color: var(--lime); }
+body[data-theme="dark"] .field input, body[data-theme="dark"] .field textarea, body[data-theme="dark"] .field select,
+body[data-theme="dark"] .codearea { background: #141814; border-color: #343a34; color: var(--ink); }
+body[data-theme="dark"] .option, body[data-theme="dark"] .platform-choice,
+body[data-theme="dark"] .persona { background: #1e231e; border-color: #2e342e; color: #c4cbc2; }
+body[data-theme="dark"] .option.selected, body[data-theme="dark"] .platform-choice.selected,
+body[data-theme="dark"] .persona.active { background: #2a331f; border-color: #7c9e2f; color: #e6f0c8; }
+body[data-theme="dark"] .settings-tab { background: #1e231e; border-color: #2e342e; color: var(--muted); }
+body[data-theme="dark"] .settings-tab.active { background: #2a331f; border-color: #7c9e2f; color: #e6f0c8; }
+body[data-theme="dark"] .stat, body[data-theme="dark"] .panel,
+body[data-theme="dark"] .session-card, body[data-theme="dark"] .question-item { box-shadow: none; }
+body[data-theme="dark"] .date-badge { background: #232823; }
+body[data-theme="dark"] .date-badge span { color: var(--muted); }
+body[data-theme="dark"] .chip { background: #2a331f; color: #cfe79a; }
+body[data-theme="dark"] .chip.pending { background: #332d1d; color: #d9b45c; }
+body[data-theme="dark"] .metric { background: #1e231e; }
+body[data-theme="dark"] .progress { background: #2a2f28; }
+body[data-theme="dark"] .side-note { background: #1d241b; border-color: #2c3627; }
+body[data-theme="dark"] .side-note p, body[data-theme="dark"] .side-note ul { color: #8b9784; }
+body[data-theme="dark"] .bubble { background: #1e231e; border-color: #2e342e; }
+body[data-theme="dark"] .bubble.user { background: #26311f; border-color: #3a4a2a; }
+body[data-theme="dark"] .bubble.feedback { background: #1d2b1f; border-color: #2f4a2f; }
+body[data-theme="dark"] .bubble .initial { background: #33402a; color: #dce8c5; }
+body[data-theme="dark"] .play { background: #232823; color: #c4cbc2; }
+body[data-theme="dark"] .question-item p, body[data-theme="dark"] .question-item .coach { color: #9aa39a; }
+body[data-theme="dark"] .question-item .coach { background: #1a1f18; }
+body[data-theme="dark"] .strength { background: #1d241b; }
+body[data-theme="dark"] .strength.weakness { background: #2a1f1d; }
+body[data-theme="dark"] .strength ul { color: #9aa39a; }
+body[data-theme="dark"] .avatar-mini { background: #33402a; color: #dce8c5; }
+body[data-theme="dark"] .platform-icon { background: #232823; color: var(--ink); }
+body[data-theme="dark"] .step span { background: #232823; border-color: #343a34; color: var(--muted); }
+body[data-theme="dark"] .step.active span { background: var(--lime); color: var(--lime-ink); }
+body[data-theme="dark"] .metric-table th, body[data-theme="dark"] .metric-table td { border-color: #2e342e; }
+body[data-theme="dark"] .tab { color: var(--muted); }
+body[data-theme="dark"] .tab.active { color: var(--ink); }
+body[data-theme="dark"] .ended-card { background: #1a1f1b; }
+body[data-theme="dark"] .end-metric { background: #1e231e; border-color: #2e342e; }
+body[data-theme="dark"] .end-note { background: #1d241b; border-color: #2c3627; }
+body[data-theme="dark"] .end-note p { color: #8b9784; }
+
 /* ---------- app shell: sidebar + main ---------- */
 
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 220px minmax(0, 1fr); }

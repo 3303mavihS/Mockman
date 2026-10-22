@@ -148,7 +148,12 @@ export default function Settings() {
 
   const pick = (group, value) => {
     setAppearance((a) => ({ ...a, [group]: value }));
-    if (group !== "accent") toast("Noted — only accent color is wired so far");
+    if (group === "theme") {
+      document.body.dataset.theme = value === "Dark" ? "dark" : "";
+      toast(value === "Dark" ? "Dark platform theme on — the call room stays dark-studio" : "Warm light theme on");
+    } else if (group === "room") {
+      toast("Noted — the interview room stays dark-studio either way for now");
+    }
   };
 
   return (
@@ -326,7 +331,7 @@ export default function Settings() {
               ))}
             </div>
           </div>
-          <p className="helper">Accent color applies immediately; theme and interview-room variants are coming soon.</p>
+          <p className="helper">Accent and platform theme apply immediately (persisted). The interview room always uses the dark-studio environment.</p>
         </div>
       )}
     </div>

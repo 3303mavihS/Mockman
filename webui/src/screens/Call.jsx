@@ -6,7 +6,6 @@ import {
 import { api } from "../api.js";
 import { WavRecorder, playAudio, stopAudio } from "../audio.js";
 
-const INTERVIEWER_NAME = "Riya";
 
 function nowTime() {
   return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -17,6 +16,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
   const isZoom = config.theme === "zoom";
 
   const [micState, setMicState] = useState("connecting");
+  const [interviewerName, setInterviewerName] = useState("Riya"); // replaced by the persona name on join
   const [interviewId, setInterviewId] = useState(null);
   const [captions, setCaptions] = useState([]); // [{who, text, time}], last 3 shown
   const [captionsOn, setCaptionsOn] = useState(!isZoom); // zoom starts hidden (per design)
@@ -52,7 +52,8 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
         const started = await api.startInterview(config);
         if (cancelled) return;
         setInterviewId(started.interview_id);
-        pushCaption(INTERVIEWER_NAME, started.opening);
+        if (started.interviewer_name) setInterviewerName(started.interviewer_name);
+        pushCaption(interviewerName, started.opening);
         applyChat(started.chat);
         setMicState("speaking");
         if (started.audio) {
@@ -122,7 +123,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       }
       if (r.chat) applyChat(r.chat);
       if (r.response) {
-        pushCaption(INTERVIEWER_NAME, r.response);
+        pushCaption(interviewerName, r.response);
         setMicState("speaking");
         if (r.audio) {
           await playAudio(api.interviewAudioUrl(interviewId, r.audio));
@@ -168,7 +169,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       const r = await api.sendChat(interviewId, message);
       if (r.chat) applyChat(r.chat);
       if (r.response) {
-        pushCaption(INTERVIEWER_NAME, r.response);
+        pushCaption(interviewerName, r.response);
         setMicState("speaking");
         if (r.audio) {
           await playAudio(api.interviewAudioUrl(interviewId, r.audio));
@@ -208,7 +209,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
   const statusText =
     micState === "recording" ? "Recording your answer…"
     : micState === "processing" ? "Thinking…"
-    : micState === "speaking" ? `${INTERVIEWER_NAME} is speaking`
+    : micState === "speaking" ? `${interviewerName} is speaking`
     : "Connected · hold Space to talk";
 
   if (micState === "connecting") {
@@ -216,7 +217,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       <div className="waiting">
         <div className="spinner-ring" />
         <h2>Joining…</h2>
-        <p className="muted">{INTERVIEWER_NAME} will let you in shortly</p>
+        <p className="muted">{interviewerName} will let you in shortly</p>
         {error && <p className="error">{error}</p>}
         <button className="btn-ghost" onClick={onCancel}>Cancel</button>
       </div>
@@ -226,12 +227,12 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
   const interviewTile = (
     <div className={`d-tile ${micState === "speaking" ? "d-tile-speaking" : ""}`}>
       <div className="d-avatar">
-        {INTERVIEWER_NAME[0]}
+        {interviewerName[0]}
         {micState === "speaking" && <span className="pulse-ring" />}
       </div>
       <div className="d-tile-label">
-        <span className="d-avatar small">{INTERVIEWER_NAME[0]}</span>
-        <span>{INTERVIEWER_NAME} · AI Interviewer</span>
+        <span className="d-avatar small">{interviewerName[0]}</span>
+        <span>{interviewerName} · AI Interviewer</span>
       </div>
     </div>
   );
@@ -272,7 +273,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       </div>
       <div className="d-board-content">
         {artifacts.length === 0 && (
-          <p className="muted small">questions and code from {INTERVIEWER_NAME} appear here</p>
+          <p className="muted small">questions and code from {interviewerName} appear here</p>
         )}
         {artifacts.map((a, i) => (
           <pre key={i}>{a.text}</pre>

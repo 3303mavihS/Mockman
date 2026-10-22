@@ -37,14 +37,15 @@ export default function App() {
   // platform screens live inside the sidebar shell; greenroom/call are fullscreen
   const [screen, setScreen] = useState("home");
 
-  // persisted accent preference (Settings → Appearance)
+  // persisted appearance preferences (Settings → Appearance)
   useEffect(() => {
     try {
       const a = JSON.parse(localStorage.getItem("mockman.appearance")) || {};
       if (a.accent && ACCENTS[a.accent]) {
         document.documentElement.style.setProperty("--lime", ACCENTS[a.accent]);
       }
-    } catch { /* default accent */ }
+      document.body.dataset.theme = a.theme === "Dark" ? "dark" : "";
+    } catch { /* defaults */ }
   }, []);
   const [config, setConfig] = useState(null);
   const [endResult, setEndResult] = useState(null);
@@ -129,7 +130,14 @@ export default function App() {
             <button className="btn primary" onClick={() => setScreen("setup")}>
               <Plus size={15} /> New interview
             </button>
-            <div className="avatar-mini" title="Profile">S</div>
+            <button
+              className="avatar-mini"
+              style={{ border: 0, cursor: "pointer" }}
+              title="Workspace settings"
+              onClick={() => setScreen("settings")}
+            >
+              S
+            </button>
           </div>
         </div>
 
