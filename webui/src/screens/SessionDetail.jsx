@@ -3,15 +3,21 @@ import { ArrowLeft, Play, Pause, TrendingUp, Target, CircleCheck, CircleAlert, C
 import { api } from "../api.js";
 import { toggleAudio, stopAudio } from "../audio.js";
 
+// Walk speaker markers and slice the text BETWEEN them — immune to the
+// transcript header block (title/date/---) which used to shift every pair.
+const TURN_RE = /\*\*(🤖 Interviewer(?: \(chat\))?|🤖 Final feedback|📝 You(?: \(chat\))?):\*\*\s*/g;
+
 function parseTurns(transcript, answers, interviewer) {
   const turns = [];
-  const re = /\*\*(🤖 Interviewer \(chat\)|🤖 Interviewer|🤖 Final feedback|📝 You \(chat\)|📝 You):\*\*\s*/g;
-  const parts = transcript.split(re).filter(Boolean);
+  const matches = [...transcript.matchAll(TURN_RE)];
   let aIdx = 0;
   let iIdx = 0;
-  for (let i = 0; i < parts.length - 1; i += 2) {
-    const label = parts[i];
-    const text = parts[i + 1].trim();
+  matches.forEach((m, i) => {
+    const label = m[1];
+    const start = m.index + m[0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : transcript.length;
+    const text = transcript.slice(start, end).trim();
+    if (!text) return;
     if (label.startsWith("📝")) {
       aIdx += 1;
       const name = `answer_${aIdx}.wav`;
@@ -26,7 +32,7 @@ function parseTurns(transcript, answers, interviewer) {
         audio: interviewer.includes(name) ? name : null,
       });
     }
-  }
+  });
   return turns;
 }
 

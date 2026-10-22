@@ -232,7 +232,7 @@ export default function Settings() {
                     className="btn danger"
                     onClick={deletePersona}
                     disabled={selected === "interviewer"}
-                    title={selected === "interviewer" ? "the default persona is protected" : "delete this persona"}
+                    title={selected === "Interviewer" ? "the default persona is protected" : "delete this persona"}
                   >
                     Delete persona
                   </button>

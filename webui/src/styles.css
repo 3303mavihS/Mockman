@@ -416,10 +416,10 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 .verdict-average { background: #f7f0dc; color: #8a6d1d; }
 .verdict-weak { background: #fae3e0; color: var(--red); }
 .strength-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-.strength { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: #fffefb; }
+.strength { border-radius: 10px; padding: 15px; background: #eef4e3; }
 .strength h3 { margin: 0 0 8px; font-size: 13px; display: flex; align-items: center; gap: 7px; }
-.strength ul { margin: 0; padding-left: 18px; color: #5d6359; font-size: 12px; line-height: 1.7; }
-.strength.weakness { background: #fdf6f0; border-color: #eedfd3; }
+.strength ul { margin: 0; padding-left: 17px; color: #62685b; font-size: 12px; line-height: 1.7; }
+.strength.weakness { background: #f8eae6; }
 
 /* ---------- settings ---------- */
 
