@@ -263,7 +263,8 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
   );
 
   const boardBlock = (
-    <aside className={`d-board ${isZoom ? "d-board-side" : "d-board-overlay"}`}>
+    <aside className={`d-board ${isZoom ? "d-board-side" : "d-board-overlay"} ${isZoom && !boardOpen ? "closed" : ""}`}
+      aria-hidden={isZoom && !boardOpen}>
       <div className="d-board-head">
         <MessageSquareCode size={15} /> Problem Board
         <span className="spacer" />
@@ -306,11 +307,11 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       {isZoom ? (
         /* ---------------- ZOOM layout: stage + right sidebar board ---------------- */
         <>
-          <div className="d-zoom-main">
+          <div className={`d-zoom-main ${boardOpen ? "" : "board-closed"}`}>
             <div className="d-zoom-stage">
               <div className="d-tiles">{interviewTile}{youTile}</div>
             </div>
-            {boardOpen && boardBlock}
+            {boardBlock}
           </div>
           {captionsOn && <div className="d-zoom-captions">{captionsBlock}</div>}
           <div className="d-zoom-controls">
