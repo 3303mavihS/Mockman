@@ -102,8 +102,10 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
       const r = await api.sendAnswer(interviewId, blob);
       if (r.transcript) setCaption({ who: "You", text: r.transcript });
       if (r.ended) {
-        const end = await api.endInterview(interviewId);
-        onEnded(end);
+        // answer endpoint already ended the interview; its response carries
+        // the session ref — calling /end again could race the background
+        // cleanup and 404.
+        onEnded(r);
         return;
       }
       if (r.chat) applyChat(r.chat);
@@ -147,6 +149,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
     const message = chatInput.trim();
     if (!message || micStateRef.current !== "ready") return;
     setChatInput("");
+    setCaption({ who: "You (typed)", text: message }); // send confirmation
     setMicState("processing");
     try {
       const r = await api.sendChat(interviewId, message);
@@ -237,10 +240,10 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
 
       {chatOpen && (
         <div className="chat-panel">
-          <div className="chat-head">Chat — technical round</div>
+          <div className="chat-head">Problem board — from your interviewer</div>
           <div className="chat-entries">
             {chatEntries.length === 0 && (
-              <p className="muted small">problems and code answers appear here</p>
+              <p className="muted small">questions and code from {INTERVIEWER_NAME} appear here — your typed answers are sent, not pinned</p>
             )}
             {chatEntries.map((e, i) => (
               <div key={i} className={`chat-entry chat-${e.who}`}>

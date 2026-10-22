@@ -221,13 +221,12 @@ def _synthesize_interviewer(state: InterviewState, text: str) -> str | None:
 def _process_interviewer_reply(state: InterviewState, reply: str) -> dict:
     """Shared reply handling: split chat artifacts, log, synthesize spoken part.
 
-    The chat panel is the full conversation thread: every spoken line appears
-    as a "message" entry; [CHAT] blocks appear as monospace "artifact" entries.
+    The chat panel is a problem board, not a conversation log: ONLY [CHAT]
+    artifacts (problem statements, code) appear there. Spoken conversation
+    lives in captions + transcript.md.
     """
     spoken, chat_parts = _split_chat_blocks(reply)
     if spoken:
-        state.chat_log.append({"who": "interviewer", "kind": "message",
-                               "text": spoken})
         log_turn(state.session_dir, "🤖 Interviewer", spoken)
     for part in chat_parts:
         state.chat_log.append({"who": "interviewer", "kind": "artifact",
@@ -279,13 +278,11 @@ async def interview_answer(interview_id: str,
         msg = "I didn't catch that. Could you repeat your answer?"
         log_turn(state.session_dir, "📝 You", "(nothing heard)")
         log_turn(state.session_dir, "🤖 Interviewer", msg)
-        state.chat_log.append({"who": "interviewer", "kind": "message", "text": msg})
         audio_name = _synthesize_interviewer(state, msg)
         return {"transcript": "", "response": msg, "turn": state.turn,
                 "audio": audio_name, "ended": False, "chat": state.chat_log}
 
     log_turn(state.session_dir, "📝 You", transcript)
-    state.chat_log.append({"who": "you", "kind": "message", "text": transcript})
 
     if "end the interview" in transcript.lower() or "end interview" in transcript.lower():
         return _end_interview(state, transcript)
@@ -309,7 +306,8 @@ def interview_chat(interview_id: str, req: ChatRequest) -> dict:
     state = _interviews.get(interview_id)
     if state is None or state.ended:
         raise HTTPException(status_code=404, detail="interview not found or ended")
-    state.chat_log.append({"who": "you", "kind": "message", "text": req.message})
+    # typed answers go to the brain + transcript, but not onto the problem
+    # board — the panel shows interviewer artifacts only
     log_turn(state.session_dir, "📝 You (chat)", req.message)
     state.session_id, response = ask_interviewer(
         f"Candidate's answer (typed via chat): {req.message}", state.session_id)
@@ -340,17 +338,29 @@ def interview_audio(interview_id: str, name: str) -> FileResponse:
 
 
 def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dict:
-    _, feedback = ask_interviewer("END INTERVIEW", state.session_id)
-    log_turn(state.session_dir, "🤖 Final feedback", feedback)
-    audio_name = _synthesize_interviewer(state, feedback)
+    """End returns immediately; the wrap-up (spoken feedback, TTS, metrics
+    report, question extraction) runs in a background thread and the
+    in-memory session is closed. The UI navigates away instantly and the
+    review page picks up artifacts as they land."""
+    session_ref = f"{state.session_dir.parent.name}/{state.session_dir.name}"
+    if state.ended:  # idempotent — double end-clicks are harmless
+        return {"ended": True, "session": session_ref}
     state.ended = True
-    finalize_session(state.session_dir, state.session_id)
-    # structured question extraction runs in the background; the review UI
-    # picks up feedback.json when it appears
-    threading.Thread(target=_extract_feedback,
-                     args=(state.session_dir,), daemon=True).start()
-    return {"feedback": feedback, "audio": audio_name, "ended": True,
-            "session": f"{state.session_dir.parent.name}/{state.session_dir.name}"}
+    threading.Thread(target=_finalize_in_background,
+                     args=(state,), daemon=True).start()
+    return {"ended": True, "session": session_ref}
+
+
+def _finalize_in_background(state: InterviewState) -> None:
+    try:
+        _, feedback = ask_interviewer("END INTERVIEW", state.session_id)
+        if feedback:
+            log_turn(state.session_dir, "🤖 Final feedback", feedback)
+            _synthesize_interviewer(state, feedback)
+    finally:
+        finalize_session(state.session_dir, state.session_id)
+        _extract_feedback(state.session_dir)
+        _interviews.pop(state.session_id, None)  # session closed server-side
 
 
 # ---------------------------------------------------------------------------

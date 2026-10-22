@@ -4,14 +4,16 @@ export default function Ended({ result, onHome, onReview }) {
     <div className="ended">
       <h1>Call ended</h1>
       <p className="muted">
-        {result?.session ? `session saved: ${result.session}` : ""}
+        {result?.session ? `session: ${result.session}` : ""}
       </p>
-      {result?.feedback && (
-        <div className="feedback-card">
-          <h2>📊 Feedback</h2>
-          <p className="feedback-text">{result.feedback}</p>
-        </div>
-      )}
+      <div className="feedback-card">
+        <h2>📊 Feedback & report</h2>
+        <p className="muted">
+          being generated in the background — open the review in a few seconds
+          and they'll fill in (spoken feedback, metrics report, question-by-question
+          analysis).
+        </p>
+      </div>
       <div className="row">
         <button className="btn-ghost" onClick={onHome}>
           ← Back to dashboard
