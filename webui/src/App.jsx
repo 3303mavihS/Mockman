@@ -61,14 +61,12 @@ export default function App() {
     return (
       <>
         {screen === "greenroom" && (
-          <div className="greenroom-page">
-            <GreenRoom
-              config={config}
-              camStream={camStream}
-              onBack={() => setScreen("setup")}
-              onJoin={() => setScreen("call")}
-            />
-          </div>
+          <GreenRoom
+            config={config}
+            camStream={camStream}
+            onBack={() => setScreen("setup")}
+            onJoin={() => setScreen("call")}
+          />
         )}
         {screen === "call" && (
           <Call

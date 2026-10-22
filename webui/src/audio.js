@@ -16,6 +16,12 @@ class PCMCollector extends AudioWorkletProcessor {
 registerProcessor('pcm-collector', PCMCollector);
 `;
 
+// device preferences chosen in the green room
+let _preferredMicId = null;
+let _preferredSpeakerId = null;
+export function setPreferredMic(id) { _preferredMicId = id; }
+export function setPreferredSpeaker(id) { _preferredSpeakerId = id; }
+
 export class WavRecorder {
   constructor() {
     this.recording = false;
@@ -28,7 +34,10 @@ export class WavRecorder {
   async start() {
     if (this.recording) return;
     this._chunks = [];
-    this._stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audio = _preferredMicId
+      ? { deviceId: { exact: _preferredMicId } }
+      : true;
+    this._stream = await navigator.mediaDevices.getUserMedia({ audio });
     this._context = new AudioContext();
     const url = URL.createObjectURL(
       new Blob([WORKLET_SRC], { type: "application/javascript" })
@@ -129,6 +138,10 @@ export function playAudio(url) {
   stopAudio();
   return new Promise((resolve) => {
     const el = new Audio(url);
+    // honor the speaker picked in the green room (where supported)
+    if (_preferredSpeakerId && typeof el.setSinkId === "function") {
+      el.setSinkId(_preferredSpeakerId).catch(() => {});
+    }
     _current = { el, url, resolve };
     const done = () => {
       if (_current && _current.el === el) _current = null;
