@@ -77,14 +77,15 @@ Key conventions:
 - [ ] 2.4 Settings: persona picker + markdown editor, interviewer name, resume upload
 - [ ] **CHECKPOINT 2:** browse & replay a past session entirely in browser. `git commit`.
 
-### Phase 3 — Simulation (Meet-style)
-- [ ] 3.1 setup screen (role, round type, theme)
-- [ ] 3.2 green room: webcam preview + mic level + Join
-- [ ] 3.3 waiting-room beat (~2s "Riya will let you in…")
-- [ ] 3.4 call screen: grid, tiles, control bar (mic/cam/captions/chat/end), timer, recording dot
-- [ ] 3.5 hold-to-talk + hints + captions + mic-lock during speech
-- [ ] 3.6 call-ended → feedback-ready redirect
-- [ ] **CHECKPOINT 3:** full voice interview in browser, zero terminal. `git commit`.
+### Phase 3 — Simulation (Meet-style) — built 2026-10-22
+- [x] 3.1 setup screen (role, round type, theme picker; Zoom pill disabled "soon")
+- [x] 3.2 green room: webcam preview + mic level meter + Join (graceful permission-denied states)
+- [x] 3.3 waiting-room beat — doubles as the /start latency cover ("Riya will let you in shortly")
+- [x] 3.4 call screen: grid, interviewer tile (pulse-ring avatar), webcam tile (toggleable), control bar (mic/cam/captions/end), timer, recording dot
+- [x] 3.5 hold-to-talk (Space + button, mouse+touch), mic locked while speaking/processing, captions toggle
+- [x] 3.6 call-ended screen with feedback + saved-session path
+- [ ] **CHECKPOINT 3:** full voice interview in browser, zero terminal — **needs human test** (getUserMedia mic/cam can't be scripted headlessly here). Browser WAV capture is new code: AudioWorklet → downsample → PCM16 WAV.
+- Notes: no react-router (state-machine screens); StrictMode OFF on purpose (Call mounts fire /start); webcam stream shared green-room → call via ref.
 
 ### Phase 4 — Technical rounds via chat
 - [ ] 4.1 chat panel; 4.2 technical flow (question→chat, code answers); 4.3 persona chat instructions

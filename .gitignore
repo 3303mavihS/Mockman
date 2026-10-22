@@ -20,6 +20,10 @@ __pycache__/
 # --- opencode runtime deps (auto-installed) ---
 .opencode/node_modules/
 
+# --- web UI build artifacts ---
+webui/node_modules/
+webui/dist/
+
 # --- local secrets ---
 .env
 *.local

@@ -216,6 +216,20 @@ def interview_end(interview_id: str) -> dict:
     return _end_interview(state, trigger_transcript=None)
 
 
+@app.get("/api/interview/{interview_id}/audio/{name}")
+def interview_audio(interview_id: str, name: str) -> FileResponse:
+    """Live-interview audio (response playback in the browser)."""
+    state = _interviews.get(interview_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="interview not found")
+    if not _AUDIO_NAME_RE.match(name):
+        raise HTTPException(status_code=400, detail="invalid audio name")
+    wav = state.session_dir / name
+    if not wav.is_file():
+        raise HTTPException(status_code=404, detail="audio not found")
+    return FileResponse(wav, media_type="audio/wav")
+
+
 def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dict:
     _, feedback = ask_interviewer("END INTERVIEW", state.session_id)
     log_turn(state.session_dir, "🤖 Final feedback", feedback)
