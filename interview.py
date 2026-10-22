@@ -45,7 +45,6 @@ PRONUNCIATIONS = {
     "kubernetes": "koo-ber-net-iss",
     "dedup": "dee-doop",
     "Dedup": "Dee-doop",
-    "Groww": "Grow",
 }
 _PRON_RE = re.compile(
     r"\b(" + "|".join(re.escape(k) for k in PRONUNCIATIONS) + r")\b"
