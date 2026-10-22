@@ -106,12 +106,48 @@ export function encodeWavPCM16(samples, sampleRate) {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
-// Play an interviewer audio file; resolves when playback finishes.
+// ---- managed playback: ONE audio element at a time ----
+// Fixes overlapping audio: starting a new playback stops the current one;
+// toggleAudio gives replay buttons real play/pause behavior.
+
+let _current = null; // { el, url, resolve }
+
+export function stopAudio() {
+  if (_current) {
+    const { el, resolve } = _current;
+    _current = null;
+    el.onended = null;
+    el.onerror = null;
+    el.pause();
+    el.removeAttribute("src");
+    if (resolve) resolve(); // unblock any awaiting caller
+  }
+}
+
+// Play url (stopping whatever is playing). Resolves on end, error, or stop.
 export function playAudio(url) {
+  stopAudio();
   return new Promise((resolve) => {
     const el = new Audio(url);
-    el.onended = resolve;
-    el.onerror = resolve;
-    el.play().catch(resolve);
+    _current = { el, url, resolve };
+    const done = () => {
+      if (_current && _current.el === el) _current = null;
+      resolve();
+    };
+    el.onended = done;
+    el.onerror = done;
+    el.play().catch(done);
   });
+}
+
+// Play/pause toggle for replay buttons. Returns true if now playing.
+// onDone fires whenever playback of this url stops (end OR stop).
+export function toggleAudio(url, onDone) {
+  if (_current && _current.url === url) {
+    stopAudio();
+    if (onDone) onDone();
+    return false;
+  }
+  playAudio(url).then(() => onDone && onDone());
+  return true;
 }

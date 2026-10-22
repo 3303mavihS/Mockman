@@ -52,6 +52,7 @@ export default function App() {
         <Call
           config={config}
           camStream={camStream}
+          onCancel={goHome}
           onEnded={(result) => {
             setEndResult(result);
             setScreen("ended");

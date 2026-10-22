@@ -219,13 +219,19 @@ def _synthesize_interviewer(state: InterviewState, text: str) -> str | None:
 
 
 def _process_interviewer_reply(state: InterviewState, reply: str) -> dict:
-    """Shared reply handling: split chat artifacts, log, synthesize spoken part."""
+    """Shared reply handling: split chat artifacts, log, synthesize spoken part.
+
+    The chat panel is the full conversation thread: every spoken line appears
+    as a "message" entry; [CHAT] blocks appear as monospace "artifact" entries.
+    """
     spoken, chat_parts = _split_chat_blocks(reply)
-    for part in chat_parts:
-        state.chat_log.append({"who": "interviewer", "text": part})
     if spoken:
+        state.chat_log.append({"who": "interviewer", "kind": "message",
+                               "text": spoken})
         log_turn(state.session_dir, "🤖 Interviewer", spoken)
     for part in chat_parts:
+        state.chat_log.append({"who": "interviewer", "kind": "artifact",
+                               "text": part})
         log_turn(state.session_dir, "🤖 Interviewer (chat)", part)
     audio_name = _synthesize_interviewer(state, spoken)
     return {"response": spoken, "audio": audio_name, "chat": state.chat_log}
@@ -273,11 +279,13 @@ async def interview_answer(interview_id: str,
         msg = "I didn't catch that. Could you repeat your answer?"
         log_turn(state.session_dir, "📝 You", "(nothing heard)")
         log_turn(state.session_dir, "🤖 Interviewer", msg)
+        state.chat_log.append({"who": "interviewer", "kind": "message", "text": msg})
         audio_name = _synthesize_interviewer(state, msg)
         return {"transcript": "", "response": msg, "turn": state.turn,
                 "audio": audio_name, "ended": False, "chat": state.chat_log}
 
     log_turn(state.session_dir, "📝 You", transcript)
+    state.chat_log.append({"who": "you", "kind": "message", "text": transcript})
 
     if "end the interview" in transcript.lower() or "end interview" in transcript.lower():
         return _end_interview(state, transcript)
@@ -301,7 +309,7 @@ def interview_chat(interview_id: str, req: ChatRequest) -> dict:
     state = _interviews.get(interview_id)
     if state is None or state.ended:
         raise HTTPException(status_code=404, detail="interview not found or ended")
-    state.chat_log.append({"who": "you", "text": req.message})
+    state.chat_log.append({"who": "you", "kind": "message", "text": req.message})
     log_turn(state.session_dir, "📝 You (chat)", req.message)
     state.session_id, response = ask_interviewer(
         f"Candidate's answer (typed via chat): {req.message}", state.session_id)

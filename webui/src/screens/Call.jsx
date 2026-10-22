@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { WavRecorder, playAudio } from "../audio.js";
+import { WavRecorder, playAudio, stopAudio } from "../audio.js";
 
 const INTERVIEWER_NAME = "Riya";
 
 // micState machine: connecting -> ready -> recording -> processing -> speaking -> ready
-export default function Call({ config, camStream, onEnded }) {
+export default function Call({ config, camStream, onEnded, onCancel }) {
   const [micState, setMicState] = useState("connecting");
   const [interviewId, setInterviewId] = useState(null);
   const [caption, setCaption] = useState({ who: "", text: "" });
@@ -24,6 +24,13 @@ export default function Call({ config, camStream, onEnded }) {
   const micStateRef = useRef(micState);
   micStateRef.current = micState;
 
+  // ---- chat (full conversation thread; artifacts auto-open the panel) ----
+  const applyChat = useCallback((chat) => {
+    if (!chat) return;
+    setChatEntries(chat);
+    if (chat.some((e) => e.kind === "artifact")) setChatOpen(true);
+  }, []);
+
   // ---- join: start the interview (waiting-room beat covers the latency) ----
   useEffect(() => {
     let cancelled = false;
@@ -33,10 +40,7 @@ export default function Call({ config, camStream, onEnded }) {
         if (cancelled) return;
         setInterviewId(started.interview_id);
         setCaption({ who: INTERVIEWER_NAME, text: started.opening });
-        if (started.chat?.length) {
-          setChatEntries(started.chat);
-          setChatOpen(true);
-        }
+        applyChat(started.chat);
         setMicState("speaking");
         if (started.audio) {
           await playAudio(api.interviewAudioUrl(started.interview_id, started.audio));
@@ -48,13 +52,14 @@ export default function Call({ config, camStream, onEnded }) {
     })();
     return () => {
       cancelled = true;
-      // leaving the call screen kills the webcam (privacy: camera light off)
+      // leaving the call screen: kill audio + webcam (camera light off)
+      stopAudio();
       if (camStream.current) {
         camStream.current.getTracks().forEach((t) => t.stop());
         camStream.current = null;
       }
     };
-  }, [config, camStream]);
+  }, [config, camStream, applyChat]);
 
   // ---- candidate video tile ----
   useEffect(() => {
@@ -101,7 +106,7 @@ export default function Call({ config, camStream, onEnded }) {
         onEnded(end);
         return;
       }
-      if (r.chat) setChatEntries(r.chat);
+      if (r.chat) applyChat(r.chat);
       const text = r.response;
       if (text) {
         setCaption({ who: INTERVIEWER_NAME, text });
@@ -115,7 +120,7 @@ export default function Call({ config, camStream, onEnded }) {
       setError(e.message);
       setMicState("ready");
     }
-  }, [interviewId, onEnded]);
+  }, [interviewId, onEnded, applyChat]);
 
   // ---- hold-to-talk: Space ----
   useEffect(() => {
@@ -138,7 +143,6 @@ export default function Call({ config, camStream, onEnded }) {
     };
   }, [startTalk, stopTalk]);
 
-  // ---- technical-round chat ----
   const sendChat = async () => {
     const message = chatInput.trim();
     if (!message || micStateRef.current !== "ready") return;
@@ -146,7 +150,7 @@ export default function Call({ config, camStream, onEnded }) {
     setMicState("processing");
     try {
       const r = await api.sendChat(interviewId, message);
-      if (r.chat) setChatEntries(r.chat);
+      if (r.chat) applyChat(r.chat);
       const text = r.response;
       if (text) {
         setCaption({ who: INTERVIEWER_NAME, text });
@@ -167,6 +171,7 @@ export default function Call({ config, camStream, onEnded }) {
   }, [chatEntries]);
 
   const endCall = async () => {
+    stopAudio(); // cut any in-flight interviewer playback immediately
     setMicState("processing");
     try {
       const end = await api.endInterview(interviewId);
@@ -187,6 +192,9 @@ export default function Call({ config, camStream, onEnded }) {
         <h2>Joining…</h2>
         <p className="muted">{INTERVIEWER_NAME} will let you in shortly</p>
         {error && <p className="error">{error}</p>}
+        <button className="btn-ghost" onClick={onCancel}>
+          Cancel
+        </button>
       </div>
     );
   }
@@ -237,7 +245,9 @@ export default function Call({ config, camStream, onEnded }) {
             {chatEntries.map((e, i) => (
               <div key={i} className={`chat-entry chat-${e.who}`}>
                 <div className="chat-who">{e.who === "you" ? "You" : INTERVIEWER_NAME}</div>
-                <pre className="chat-text">{e.text}</pre>
+                {e.kind === "artifact"
+                  ? <pre className="chat-text">{e.text}</pre>
+                  : <div className="chat-msg">{e.text}</div>}
               </div>
             ))}
             <div ref={chatEndRef} />

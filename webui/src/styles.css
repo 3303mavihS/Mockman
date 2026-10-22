@@ -446,6 +446,7 @@ button.session-card:hover { border-color: var(--accent); }
   white-space: pre-wrap;
   word-break: break-word;
 }
+.chat-msg { font-size: 0.88rem; line-height: 1.45; white-space: pre-wrap; }
 .chat-input-row {
   display: flex;
   gap: 8px;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
+import { toggleAudio, stopAudio } from "../audio.js";
 
 // Parse transcript.md turns like "**🤖 Interviewer:** text" into chat entries,
 // attaching audio by sequence: k-th interviewer entry -> interviewer_{k}.wav,
@@ -56,11 +57,13 @@ export default function SessionDetail({ day, sid, onBack }) {
     [data]
   );
 
+  // stop whatever is playing when leaving the screen
+  useEffect(() => () => stopAudio(), []);
+
   const play = (name) => {
-    setPlaying(name);
-    const el = new Audio(api.sessionAudioUrl(day, sid, name));
-    el.onended = () => setPlaying(null);
-    el.play().catch(() => setPlaying(null));
+    const url = api.sessionAudioUrl(day, sid, name);
+    toggleAudio(url, () => setPlaying((cur) => (cur === name ? null : cur)));
+    setPlaying((cur) => (cur === name ? null : name));
   };
 
   if (error) return <div className="page"><p className="error">{error}</p></div>;
