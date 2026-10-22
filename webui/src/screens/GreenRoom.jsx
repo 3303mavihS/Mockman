@@ -117,6 +117,7 @@ export default function GreenRoom({ config, camStream, onBack, onJoin }) {
         </div>
 
         <div className="gr-layout">
+          <div className="gr-left">
           {/* ---------- camera preview ---------- */}
           <section className="gr-panel">
             <div className="gr-panel-head">
@@ -159,6 +160,31 @@ export default function GreenRoom({ config, camStream, onBack, onJoin }) {
             </div>
           </section>
 
+          {/* ---------- device selection (below the preview) ---------- */}
+          {(mics.length > 0 || speakers.length > 0) && (
+            <section className="gr-panel gr-devices">
+              {mics.length > 0 && (
+                <div className="gr-select-row">
+                  <label>MICROPHONE</label>
+                  <select defaultValue="" onChange={(e) => setPreferredMic(e.target.value || null)}>
+                    <option value="">Default microphone</option>
+                    {mics.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || "Microphone"}</option>)}
+                  </select>
+                </div>
+              )}
+              {speakers.length > 0 && (
+                <div className="gr-select-row">
+                  <label>SPEAKER</label>
+                  <select defaultValue="" onChange={(e) => setPreferredSpeaker(e.target.value || null)}>
+                    <option value="">Default speaker</option>
+                    {speakers.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>)}
+                  </select>
+                </div>
+              )}
+            </section>
+          )}
+          </div>
+
           <div className="gr-side">
             {/* ---------- device check ---------- */}
             <section className="gr-panel">
@@ -190,24 +216,6 @@ export default function GreenRoom({ config, camStream, onBack, onJoin }) {
                   <span className="gr-status">Available</span>
                 </div>
               </div>
-              {mics.length > 0 && (
-                <div className="gr-select-row">
-                  <label>MICROPHONE</label>
-                  <select defaultValue="" onChange={(e) => setPreferredMic(e.target.value || null)}>
-                    <option value="">Default microphone</option>
-                    {mics.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || "Microphone"}</option>)}
-                  </select>
-                </div>
-              )}
-              {speakers.length > 0 && (
-                <div className="gr-select-row">
-                  <label>SPEAKER</label>
-                  <select defaultValue="" onChange={(e) => setPreferredSpeaker(e.target.value || null)}>
-                    <option value="">Default speaker</option>
-                    {speakers.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>)}
-                  </select>
-                </div>
-              )}
             </section>
 
             {/* ---------- session summary ---------- */}
