@@ -49,6 +49,39 @@ function fmtMin(seconds) {
   return m ? `${m}:${String(s).padStart(2, "0")}` : `0:${String(s).padStart(2, "0")}`;
 }
 
+// client-side export: transcript + report + analysis as one markdown file
+function exportReport(data, title) {
+  const parts = [
+    `# MockMan session — ${title}`,
+    `date: ${data.day} · session: ${data.id}`,
+    "\n## Transcript\n",
+    data.transcript,
+    "\n## Speaking report\n",
+    "```",
+    data.report || "(not generated)",
+    "```",
+  ];
+  if (data.feedback) {
+    parts.push("\n## Question-by-question analysis\n");
+    data.feedback.questions.forEach((q, i) => {
+      parts.push(`### ${i + 1}. ${q.question} [${q.verdict.toUpperCase()}]`);
+      parts.push(`${q.answer_summary}\n`);
+      parts.push(`> Coaching note: ${q.note}\n`);
+    });
+    parts.push("### Strong points");
+    data.feedback.strong_points.forEach((s) => parts.push(`- ${s}`));
+    parts.push("\n### Areas to improve");
+    data.feedback.weak_points.forEach((s) => parts.push(`- ${s}`));
+  }
+  const blob = new Blob([parts.join("\n")], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mockman-${data.day}-${data.id.slice(-6)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function SessionDetail({ day, sid, onBack }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -105,6 +138,9 @@ export default function SessionDetail({ day, sid, onBack }) {
         </div>
         <div className="toolbar">
           <button className="btn" onClick={onBack}><ArrowLeft size={15} /> Back to sessions</button>
+          <button className="btn" onClick={() => exportReport(data, title)}>
+            Export report ↗
+          </button>
         </div>
       </div>
 
@@ -136,7 +172,10 @@ export default function SessionDetail({ day, sid, onBack }) {
                     <button className="play" onClick={() => play(t.audio)}>
                       {playing === t.audio
                         ? <><Pause size={11} /> Pause</>
-                        : <><Play size={11} /> Replay {t.who === "you" ? "answer" : "question"}</>}
+                        : <>
+                            <Play size={11} /> Replay {t.who === "you" ? "answer" : "question"}
+                            {data.durations?.[t.audio] != null && ` · ${fmtMin(data.durations[t.audio])}`}
+                          </>}
                     </button>
                   )}
                 </div>

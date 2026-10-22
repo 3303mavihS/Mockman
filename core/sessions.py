@@ -8,6 +8,7 @@ Layout: sessions/<YYYY-MM-DD>/<opencode-session-id>/
 """
 
 import re
+import struct
 import subprocess
 import sys
 import time
@@ -66,6 +67,40 @@ def _validate_day_sid(day: str, sid: str) -> bool:
     return bool(_DAY_RE.match(day)) and bool(_SID_RE.match(sid))
 
 
+def _wav_seconds(path: Path) -> int | None:
+    """Duration by walking RIFF chunks — AVAudioFile pads headers with JUNK
+    and FLLR chunks, so fixed offsets don't work. Handles both our formats
+    (recorder: 48kHz Float32; browser uploads: 16kHz PCM16)."""
+    try:
+        with open(path, "rb") as f:
+            if f.read(4) != b"RIFF":
+                return None
+            f.seek(4 + 4)  # size, then "WAVE"
+            if f.read(4) != b"WAVE":
+                return None
+            rate = channels = bits = data_size = None
+            while True:
+                hdr = f.read(8)
+                if len(hdr) < 8:
+                    return None
+                chunk_id, size = hdr[:4], struct.unpack("<I", hdr[4:])[0]
+                if chunk_id == b"fmt ":
+                    fmt = f.read(size)
+                    channels = struct.unpack("<H", fmt[2:4])[0]
+                    rate = struct.unpack("<I", fmt[4:8])[0]
+                    bits = struct.unpack("<H", fmt[14:16])[0]
+                elif chunk_id == b"data":
+                    data_size = size
+                    break
+                else:
+                    f.seek(size + (size % 2), 1)  # chunks are 2-byte aligned
+            if not (rate and channels and bits and data_size):
+                return None
+            return round(data_size / (rate * channels * (bits // 8)))
+    except (OSError, struct.error):
+        return None
+
+
 def list_sessions() -> list[dict]:
     """All sessions, newest first, with summary metadata for the dashboard."""
     out = []
@@ -121,6 +156,14 @@ def load_session(day: str, sid: str) -> dict | None:
         except (json.JSONDecodeError, OSError):
             return None
 
+    answers = _numbered("answer_*.wav")
+    interviewer = _numbered("interviewer_*.wav")
+    durations = {}
+    for name in answers + interviewer:
+        secs = _wav_seconds(sess / name)
+        if secs is not None:
+            durations[name] = secs
+
     return {
         "day": day,
         "id": sid,
@@ -129,7 +172,8 @@ def load_session(day: str, sid: str) -> dict | None:
         "report": (sess / "report.txt").read_text()
                   if (sess / "report.txt").is_file() else "",
         "report_json": _json_file("report.json"),
-        "answers": _numbered("answer_*.wav"),
-        "interviewer": _numbered("interviewer_*.wav"),
+        "answers": answers,
+        "interviewer": interviewer,
+        "durations": durations,
         "feedback": _json_file("feedback.json"),
     }
