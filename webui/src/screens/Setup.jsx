@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 
 const ROUND_TYPES = ["behavioral", "technical", "system design", "mixed"];
 
@@ -7,6 +8,13 @@ export default function Setup({ onBack, onContinue }) {
   const [itype, setItype] = useState("mixed");
   const [context, setContext] = useState("");
   const [theme, setTheme] = useState("meet");
+
+  // prefill context from the saved profile resume (still editable per interview)
+  useEffect(() => {
+    api.profile().then((p) => {
+      if (p.resume) setContext(p.resume);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="setup">

@@ -1,4 +1,5 @@
-export default function Ended({ result, onHome }) {
+export default function Ended({ result, onHome, onReview }) {
+  const [day, sid] = result?.session?.split("/") ?? [];
   return (
     <div className="ended">
       <h1>Call ended</h1>
@@ -11,9 +12,16 @@ export default function Ended({ result, onHome }) {
           <p className="feedback-text">{result.feedback}</p>
         </div>
       )}
-      <button className="btn-primary" onClick={onHome}>
-        ← Back to dashboard
-      </button>
+      <div className="row">
+        <button className="btn-ghost" onClick={onHome}>
+          ← Back to dashboard
+        </button>
+        {day && sid && (
+          <button className="btn-primary" onClick={() => onReview(day, sid)}>
+            Review session →
+          </button>
+        )}
+      </div>
     </div>
   );
 }

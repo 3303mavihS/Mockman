@@ -8,6 +8,7 @@
 
 # --- user interview data (private; never commit) ---
 sessions/
+profile/
 
 # --- scratch & media ---
 *.wav

@@ -103,6 +103,15 @@ def load_session(day: str, sid: str) -> dict | None:
             key=lambda n: int(re.search(r"\d+", n).group()),
         )
 
+    feedback = None
+    fb = sess / "feedback.json"
+    if fb.is_file():
+        try:
+            import json
+            feedback = json.loads(fb.read_text())
+        except (json.JSONDecodeError, OSError):
+            feedback = None
+
     return {
         "day": day,
         "id": sid,
@@ -112,4 +121,5 @@ def load_session(day: str, sid: str) -> dict | None:
                   if (sess / "report.txt").is_file() else "",
         "answers": _numbered("answer_*.wav"),
         "interviewer": _numbered("interviewer_*.wav"),
+        "feedback": feedback,
     }

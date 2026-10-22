@@ -70,12 +70,14 @@ Key conventions:
 - [ ] 1.5 post-session job: LLM question-extraction → `feedback.json` (deferred — do with Phase 2 review UI)
 - [x] **CHECKPOINT 1 ✅:** curl drove start → wav answer → end via API; transcript, response audio, feedback, report.txt, session.json all correct. (Notes: `POST /api/setup` merged into `/interview/start` fields; resume upload endpoint pending with Phase 2 settings UI.)
 
-### Phase 2 — Platform shell (React)
-- [ ] 2.1 Vite scaffold, router, dark theme base
-- [ ] 2.2 Dashboard: session cards (date, role, duration, pace/filler chips)
-- [ ] 2.3 Session detail: transcript + report + per-turn audio replay
-- [ ] 2.4 Settings: persona picker + markdown editor, interviewer name, resume upload
-- [ ] **CHECKPOINT 2:** browse & replay a past session entirely in browser. `git commit`.
+### Phase 2 — Platform shell (React) — built 2026-10-22
+- [x] 2.1 Vite scaffold, dark theme (done with Phase 3)
+- [x] 2.2 Dashboard: clickable session cards (date, turns, duration, report/analysis chips) + Settings entry
+- [x] 2.3 Session detail: chat-bubble transcript with per-turn replay buttons, report tab, feedback tab (polls until feedback.json appears)
+- [x] 2.4 Settings: persona picker + markdown editor (PUT), resume profile (GET/PUT, gitignored `profile/`), Setup prefills context from saved resume
+- [x] 1.5 analyzer persona (`.opencode/agent/analyzer.md`, tools denied, strict-JSON output) — background thread on interview end → `feedback.json` (questions+verdicts, strong/weak points). Backfilled the first real session: 7 questions extracted with coaching notes.
+- [ ] **CHECKPOINT 2:** browse & replay a past session entirely in browser — **needs human test**
+- Notes: Ended screen links straight to Review. interviewer_N.wav replay only exists for web-conducted sessions (CLI sessions predate interviewer audio).
 
 ### Phase 3 — Simulation (Meet-style) — built 2026-10-22
 - [x] 3.1 setup screen (role, round type, theme picker; Zoom pill disabled "soon")

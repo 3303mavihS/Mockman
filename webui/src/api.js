@@ -37,4 +37,24 @@ export const api = {
 
   interviewAudioUrl: (interviewId, name) =>
     `${BASE}/interview/${interviewId}/audio/${name}`,
+
+  session: (day, sid) => req(`/sessions/${day}/${sid}`),
+  sessionAudioUrl: (day, sid, name) =>
+    `${BASE}/sessions/${day}/${sid}/audio/${name}`,
+
+  persona: (id) => req(`/personas/${id}`),
+  updatePersona: (id, content) =>
+    req(`/personas/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    }),
+
+  profile: () => req("/profile"),
+  updateProfile: (resume) =>
+    req("/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resume }),
+    }),
 };

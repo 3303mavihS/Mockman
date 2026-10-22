@@ -16,6 +16,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+import json
+
 from core import ROOT
 from core.brain import ask_interviewer
 from core.personas import list_personas, read_persona, write_persona
@@ -23,6 +25,9 @@ from core.sessions import (finalize_session, list_sessions, load_session,
                            log_turn, make_session_dir)
 from core.stt import is_empty_recording, transcribe
 from core.tts import Speaker
+
+PROFILE_DIR = ROOT / "profile"
+PROFILE_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="MockMan", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -126,6 +131,58 @@ def persona_update(persona_id: str, body: PersonaUpdate) -> dict:
     if not write_persona(persona_id, body.content):
         raise HTTPException(status_code=400, detail="invalid persona id")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Profile (resume reused across interviews; stays local, gitignored)
+# ---------------------------------------------------------------------------
+
+class ProfileUpdate(BaseModel):
+    resume: str = Field(default="", max_length=MAX_CONTEXT_CHARS)
+
+
+@app.get("/api/profile")
+def profile_get() -> dict:
+    f = PROFILE_DIR / "resume.txt"
+    return {"resume": f.read_text() if f.is_file() else ""}
+
+
+@app.put("/api/profile")
+def profile_put(body: ProfileUpdate) -> dict:
+    (PROFILE_DIR / "resume.txt").write_text(body.resume)
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Post-session analysis (question extraction -> feedback.json)
+# ---------------------------------------------------------------------------
+
+def _extract_feedback(session_dir: Path) -> None:
+    """Background job: run the analyzer persona over the transcript and save
+    structured feedback. Best-effort — failures just mean no feedback.json."""
+    transcript_file = session_dir / "transcript.md"
+    if not transcript_file.is_file():
+        return
+    transcript = transcript_file.read_text()
+    prompt = (
+        "Analyze this mock interview transcript and output the JSON object.\n\n"
+        + transcript
+    )
+    _, text = ask_interviewer(prompt, None, agent="analyzer")
+    if not text:
+        return
+    # tolerate markdown fences around the JSON
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("```")[1]
+        if cleaned.startswith("json"):
+            cleaned = cleaned[4:]
+    try:
+        data = json.loads(cleaned)
+    except (json.JSONDecodeError, IndexError):
+        return
+    if isinstance(data, dict) and "questions" in data:
+        (session_dir / "feedback.json").write_text(json.dumps(data, indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +293,10 @@ def _end_interview(state: InterviewState, trigger_transcript: str | None) -> dic
     audio_name = _synthesize_interviewer(state, feedback)
     state.ended = True
     finalize_session(state.session_dir, state.session_id)
+    # structured question extraction runs in the background; the review UI
+    # picks up feedback.json when it appears
+    threading.Thread(target=_extract_feedback,
+                     args=(state.session_dir,), daemon=True).start()
     return {"feedback": feedback, "audio": audio_name, "ended": True,
             "session": f"{state.session_dir.parent.name}/{state.session_dir.name}"}
 
