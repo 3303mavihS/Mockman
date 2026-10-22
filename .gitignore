@@ -33,3 +33,6 @@ webui/dist/
 
 # --- runtime state ---
 .mockman.pid
+
+# --- launcher app bundle (regenerate per machine) ---
+MockMan.app/
