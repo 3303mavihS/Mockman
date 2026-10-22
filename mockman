@@ -1,23 +1,85 @@
 #!/bin/zsh
-# MockMan launcher — starts the server (if not already running) and opens the UI.
-# The app idles at the dashboard; an interview session begins only when you
-# join a meeting from the UI.
+# MockMan launcher — server lifecycle + open the UI.
 #
-# Optional: to get a double-clickable app, open Automator -> Application ->
+#   ./mockman            start the server (if down) and open the app
+#   ./mockman stop       stop the server
+#   ./mockman restart    restart the server and open the app
+#   ./mockman status     show whether the server is up
+#   ./mockman logs       tail the server log
+#
+# The app idles at the dashboard; an interview begins only when you join
+# a meeting from the UI. The Kokoro voice model warms up in the background
+# at server start, so first-question audio doesn't pay the load cost.
+#
+# Optional: for a double-clickable app, Automator -> Application ->
 # "Run Shell Script" -> paste the absolute path to this script -> save as
 # MockMan.app.
 
+set -u
 cd "$(dirname "$0")"
 PORT="${MOCKMAN_PORT:-8420}"
+PID_FILE=".mockman.pid"
+LOG_FILE="/tmp/mockman-server.log"
+URL="http://127.0.0.1:$PORT"
 
-if ! curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
-  echo "starting MockMan server on :$PORT …"
-  .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port "$PORT" \
-    > /tmp/mockman-server.log 2>&1 &
-  for _ in {1..30}; do
-    curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1 && break
-    sleep 1
-  done
-fi
+is_running() {
+  # our pid file, verified against the actual health endpoint
+  if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    curl -sf "$URL/api/health" >/dev/null 2>&1
+    return $?
+  fi
+  return 1
+}
 
-open "http://127.0.0.1:$PORT"
+start() {
+  if is_running; then
+    echo "mockman is already running (pid $(cat "$PID_FILE"))"
+  else
+    echo "starting MockMan on :$PORT …"
+    .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port "$PORT" \
+      > "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    for _ in {1..30}; do
+      curl -sf "$URL/api/health" >/dev/null 2>&1 && break
+      sleep 1
+    done
+    if ! is_running; then
+      echo "server failed to start — last log lines:" >&2
+      tail -5 "$LOG_FILE" >&2
+      exit 1
+    fi
+  fi
+  open "$URL"
+}
+
+stop() {
+  if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    local pid=$(cat "$PID_FILE")
+    kill "$pid"
+    # wait for a real exit — restarting before the port is released fails the bind
+    for _ in {1..15}; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
+    rm -f "$PID_FILE"
+    echo "stopped"
+  else
+    rm -f "$PID_FILE"
+    echo "not running"
+  fi
+}
+
+case "${1:-start}" in
+  start) start ;;
+  stop) stop ;;
+  restart) stop; start ;;
+  status)
+    if is_running; then
+      echo "running (pid $(cat "$PID_FILE")) at $URL"
+      curl -s "$URL/api/health"
+      echo ""
+    else
+      echo "not running"
+    fi
+    ;;
+  logs) tail -f "$LOG_FILE" ;;
+  *) echo "usage: mockman [start|stop|restart|status|logs]" >&2; exit 2 ;;
+esac

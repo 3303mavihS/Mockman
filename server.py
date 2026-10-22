@@ -12,6 +12,7 @@ import re
 import shutil
 import threading
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -31,7 +32,16 @@ from core.tts import Speaker
 PROFILE_DIR = ROOT / "profile"
 PROFILE_DIR.mkdir(exist_ok=True)
 
-app = FastAPI(title="MockMan", docs_url=None, redoc_url=None, openapi_url=None)
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # warm the Kokoro voice model in the background so the first interview
+    # doesn't pay the ~10s load; health stays cheap meanwhile
+    threading.Thread(target=get_speaker, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="MockMan", docs_url=None, redoc_url=None,
+              openapi_url=None, lifespan=lifespan)
 
 # ---------------------------------------------------------------------------
 # Shared state (single-user local tool: one Kokoro model, active interviews)
@@ -96,7 +106,12 @@ class PersonaUpdate(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "voice": get_speaker().available}
+    """Cheap and instant — must NOT trigger the voice model load."""
+    if _speaker is None:
+        voice = "loading"
+    else:
+        voice = "ready" if _speaker.available else "unavailable"
+    return {"ok": True, "voice": voice}
 
 
 @app.get("/api/sessions")
