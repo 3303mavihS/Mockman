@@ -592,7 +592,8 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 .waiting .muted { color: var(--d-muted); }
 .waiting .error { color: #fca5a5; }
 
-.callscreen { min-height: 100vh; display: flex; flex-direction: column; background: #090b0a; color: var(--d-text); }
+/* a call UI never page-scrolls: bounded to the viewport, children flex */
+.callscreen { height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #090b0a; color: var(--d-text); }
 
 .d-meeting-head {
   height: 64px;
@@ -628,12 +629,12 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 }
 @keyframes blink { 50% { opacity: 0.25; } }
 
-.d-meet-body { padding: 18px 20px 0; flex: 1; display: flex; flex-direction: column; }
-.d-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; align-content: center; }
+.d-meet-body { padding: 18px 20px 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.d-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
 .d-tile {
   position: relative;
-  min-height: 260px;
-  aspect-ratio: 1.42;
+  min-height: 0;
+  height: 100%;
   background: linear-gradient(135deg, #222a2d, #18201f);
   border: 1px solid #3a403c;
   border-radius: 13px;
@@ -712,11 +713,11 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 .d-control.hangup:hover { background: #d32f2f; }
 .d-control:disabled { opacity: 0.55; cursor: default; }
 
-.d-zoom-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 470px; }
-.zoom-mode .d-meeting-head { height: 58px; }
-.d-zoom-stage { padding: 18px; display: flex; align-items: center; }
-.d-zoom-stage .d-tiles { width: 100%; gap: 10px; }
-.d-zoom-stage .d-tile { min-height: 250px; aspect-ratio: 1.15; }
+.d-zoom-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.zoom-mode .d-meeting-head { height: 58px; flex-shrink: 0; }
+.d-zoom-stage { padding: 18px; display: flex; align-items: stretch; min-height: 0; }
+.d-zoom-stage .d-tiles { width: 100%; height: 100%; gap: 10px; }
+.d-zoom-stage .d-tile { min-height: 0; }
 .d-zoom-captions { padding: 0 18px 10px; }
 .d-zoom-captions .d-captions { margin-top: 0; }
 .d-zoom-controls { min-height: 78px; display: flex; align-items: center; justify-content: space-around; gap: 8px; padding: 10px 14px; background: #151816; border-top: 1px solid #272c28; }
@@ -727,8 +728,13 @@ main { min-width: 0; padding: 28px clamp(18px, 3vw, 46px) 48px; }
 .d-zc.end { background: #e83c3c; border-radius: 8px; padding: 10px 18px; font-weight: 800; color: #fff; flex-direction: row; gap: 7px; font-size: 13px; }
 .d-zc.end:hover { background: #d32f2f; }
 
-.d-board { border-left: 1px solid #303632; background: #111513; display: flex; flex-direction: column; min-width: 0; animation: panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.d-board { border-left: 1px solid #303632; background: #111513; display: flex; flex-direction: column; min-width: 0; }
+/* translate entrance only for the floating (meet) variant — inside the zoom
+   grid it would overflow the track and flash a horizontal scrollbar */
+.d-board-overlay { animation: panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.d-board-side { animation: board-fade 180ms ease-out; }
 @keyframes panel-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes board-fade { from { opacity: 0; } to { opacity: 1; } }
 .d-board-overlay { position: fixed; right: 16px; bottom: 96px; top: 108px; width: 400px; border: 1px solid #303632; border-radius: 14px; z-index: 10; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55); }
 .d-board-head { padding: 14px 15px; border-bottom: 1px solid #303632; display: flex; align-items: center; gap: 9px; font-weight: 750; font-size: 0.85rem; }
 .d-iconbtn { border: 0; background: transparent; color: #c7ccc6; font-size: 18px; padding: 5px; cursor: pointer; }
@@ -907,8 +913,10 @@ kbd { font-family: var(--font-mono); font-size: 0.7rem; border: 1px solid var(--
   .session-card { grid-template-columns: 48px minmax(0, 1fr); }
   .session-card .chips { grid-column: 2; justify-content: flex-start; }
   .choice-grid, .call-ended-grid { grid-template-columns: 1fr; }
+  /* small screens: the call screen may scroll again */
+  .callscreen { height: auto; min-height: 100vh; overflow: visible; }
   .d-tiles { grid-template-columns: 1fr; }
-  .d-tile { min-height: 180px; aspect-ratio: 1.35; }
+  .d-tile { min-height: 180px; height: auto; aspect-ratio: 1.35; }
   .d-avatar { height: 76px; width: 76px; font-size: 38px; }
   .d-board-overlay { left: 12px; right: 12px; width: auto; }
   .strength-grid { grid-template-columns: 1fr; }
