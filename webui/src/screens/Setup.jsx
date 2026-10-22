@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { api } from "../api.js";
 
 const ROUND_TYPES = ["behavioral", "technical", "system design", "mixed"];
@@ -17,8 +18,11 @@ export default function Setup({ onBack, onContinue }) {
   }, []);
 
   return (
-    <div className="setup">
-      <h1>Set up your interview</h1>
+    <div className="setup screen">
+      <div className="setup-head">
+        <h1>Set up your interview</h1>
+        <p className="muted small">configure the round, then join the call</p>
+      </div>
 
       <label className="field">
         <span>Role</span>
@@ -63,7 +67,7 @@ export default function Setup({ onBack, onContinue }) {
       </div>
 
       <label className="field">
-        <span>Resume / job description (optional, pasted text)</span>
+        <span>Resume / job description (optional)</span>
         <textarea
           rows={6}
           value={context}
@@ -72,9 +76,9 @@ export default function Setup({ onBack, onContinue }) {
         />
       </label>
 
-      <div className="row">
+      <div className="row spread">
         <button className="btn-ghost" onClick={onBack}>
-          ← Back
+          <ArrowLeft size={16} /> Back
         </button>
         <button
           className="btn-primary"
@@ -83,7 +87,7 @@ export default function Setup({ onBack, onContinue }) {
             onContinue({ role: role.trim(), itype, context, theme, persona: "interviewer" })
           }
         >
-          Continue →
+          Continue <ChevronRight size={16} />
         </button>
       </div>
     </div>

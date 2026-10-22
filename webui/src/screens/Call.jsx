@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Captions, Loader2, Mic, MessageSquareCode, PhoneOff, Send, Video, VideoOff, Volume2 } from "lucide-react";
 import { api } from "../api.js";
 import { WavRecorder, playAudio, stopAudio } from "../audio.js";
 
@@ -212,7 +213,7 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
 
       <div className="grid">
         <div className={`tile ${micState === "speaking" ? "tile-speaking" : ""}`}>
-          <div className="avatar avatar-lg">
+          <div className="avatar avatar-lg avatar-interviewer">
             {INTERVIEWER_NAME[0]}
             {micState === "speaking" && <span className="pulse-ring" />}
           </div>
@@ -222,10 +223,10 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
           {camOn && camStream.current ? (
             <video ref={videoRef} autoPlay playsInline muted className="cam" />
           ) : (
-            <div className="avatar avatar-lg">You</div>
+            <div className="avatar avatar-lg avatar-you">You</div>
           )}
           <div className="tile-name">
-            You {micState === "recording" ? "· 🎙️" : ""}
+            You {micState === "recording" && <Mic size={12} />}
           </div>
         </div>
       </div>
@@ -282,21 +283,21 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
           onClick={() => setCaptionsOn((v) => !v)}
           title="captions"
         >
-          💬
+          <Captions size={19} />
         </button>
         <button
           className={`ctl ${chatOpen ? "ctl-on" : ""}`}
           onClick={() => setChatOpen((v) => !v)}
-          title="chat (technical rounds)"
+          title="problem board (technical rounds)"
         >
-          💻
+          <MessageSquareCode size={19} />
         </button>
         <button
           className={`ctl ${camOn ? "ctl-on" : ""}`}
           onClick={() => setCamOn((v) => !v)}
           title="camera"
         >
-          {camOn ? "📷" : "🚫"}
+          {camOn ? <Video size={19} /> : <VideoOff size={19} />}
         </button>
         <button
           className={`ctl ctl-mic ${micState === "recording" ? "ctl-recording" : ""}`}
@@ -308,16 +309,18 @@ export default function Call({ config, camStream, onEnded, onCancel }) {
           disabled={micState !== "ready" && micState !== "recording"}
           title="hold to talk"
         >
-          {micState === "recording" ? "🎙️ release to send"
-            : micState === "processing" ? "⏳ thinking…"
-            : micState === "speaking" ? "🔊 listening…"
-            : "🎤 hold to talk"}
+          {micState === "recording" ? <><Mic size={17} /> release to send</>
+            : micState === "processing" ? <><Loader2 size={17} className="spin" /> thinking…</>
+            : micState === "speaking" ? <><Volume2 size={17} /> listening…</>
+            : <><Mic size={17} /> hold to talk</>}
         </button>
         <button className="ctl ctl-end" onClick={endCall} title="end call">
-          📞 End
+          <PhoneOff size={17} /> End
         </button>
       </div>
-      <p className="muted small center">hold Space to talk · mic is muted while {INTERVIEWER_NAME} speaks</p>
+      <p className="muted small center ctl-hint">
+        hold <kbd>Space</kbd> to talk · mic is muted while {INTERVIEWER_NAME} speaks
+      </p>
     </div>
   );
 }

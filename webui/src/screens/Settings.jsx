@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { api } from "../api.js";
 
 export default function Settings({ onBack }) {
@@ -27,10 +28,12 @@ export default function Settings({ onBack }) {
   };
 
   return (
-    <div className="page narrow">
+    <div className="page narrow screen">
       <div className="row spread">
         <h1>Settings</h1>
-        <button className="btn-ghost" onClick={onBack}>← Dashboard</button>
+        <button className="btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Dashboard
+        </button>
       </div>
       {status && <p className="muted">{status}</p>}
 

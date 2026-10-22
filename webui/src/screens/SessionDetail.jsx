@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CircleAlert, CircleCheck, CircleX, Play, Pause, TrendingUp, Target } from "lucide-react";
 import { api } from "../api.js";
 import { toggleAudio, stopAudio } from "../audio.js";
 
@@ -31,7 +32,21 @@ function parseTurns(transcript, answers, interviewer) {
   return turns;
 }
 
-const VERDICT_ICON = { strong: "🟢", average: "🟡", weak: "🔴" };
+const VERDICT = {
+  strong: { icon: CircleCheck, cls: "verdict-strong" },
+  average: { icon: CircleAlert, cls: "verdict-average" },
+  weak: { icon: CircleX, cls: "verdict-weak" },
+};
+
+function VerdictChip({ verdict }) {
+  const v = VERDICT[verdict] || VERDICT.average;
+  const Icon = v.icon;
+  return (
+    <span className={`verdict ${v.cls}`}>
+      <Icon size={12} /> {verdict}
+    </span>
+  );
+}
 
 export default function SessionDetail({ day, sid, onBack }) {
   const [data, setData] = useState(null);
@@ -66,13 +81,15 @@ export default function SessionDetail({ day, sid, onBack }) {
     setPlaying((cur) => (cur === name ? null : name));
   };
 
-  if (error) return <div className="page"><p className="error">{error}</p></div>;
-  if (!data) return <div className="page"><p className="muted">loading…</p></div>;
+  if (error) return <div className="page screen"><p className="error">{error}</p></div>;
+  if (!data) return <div className="page screen"><p className="muted">loading…</p></div>;
 
   return (
-    <div className="page">
+    <div className="page screen">
       <div className="row spread">
-        <button className="btn-ghost" onClick={onBack}>← Dashboard</button>
+        <button className="btn-ghost" onClick={onBack}>
+          <ArrowLeft size={16} /> Dashboard
+        </button>
         <span className="muted small">{day} · {sid.slice(0, 12)}…</span>
       </div>
 
@@ -97,7 +114,9 @@ export default function SessionDetail({ day, sid, onBack }) {
               <div className="bubble-text">{t.text}</div>
               {t.audio && (
                 <button className="replay" onClick={() => play(t.audio)}>
-                  {playing === t.audio ? "⏸ playing…" : "▶ replay"}
+                  {playing === t.audio
+                    ? <><Pause size={12} /> pause</>
+                    : <><Play size={12} /> replay</>}
                 </button>
               )}
             </div>
@@ -115,7 +134,7 @@ export default function SessionDetail({ day, sid, onBack }) {
           {data.feedback?.questions.map((q, i) => (
             <div key={i} className="q-card">
               <div className="q-head">
-                <span>{VERDICT_ICON[q.verdict] || "⚪"}</span>
+                <VerdictChip verdict={q.verdict} />
                 <b>{q.question}</b>
               </div>
               <p className="muted">{q.answer_summary}</p>
@@ -124,12 +143,12 @@ export default function SessionDetail({ day, sid, onBack }) {
           ))}
           {data.feedback && (
             <div className="sw-grid">
-              <div>
-                <h3>💪 strong points</h3>
+              <div className="card">
+                <h3><TrendingUp size={16} /> strong points</h3>
                 <ul>{data.feedback.strong_points.map((s, i) => <li key={i}>{s}</li>)}</ul>
               </div>
-              <div>
-                <h3>🎯 weak points</h3>
+              <div className="card">
+                <h3><Target size={16} /> weak points</h3>
                 <ul>{data.feedback.weak_points.map((s, i) => <li key={i}>{s}</li>)}</ul>
               </div>
             </div>
